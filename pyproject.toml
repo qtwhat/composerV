@@ -1,0 +1,54 @@
+[project]
+name = "composerv"
+version = "0.0.1"
+description = "Local, story-first video editing assistant: turn a personal footage archive into a story, preview it live, hand off to Final Cut Pro."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pydantic>=2.6",
+    "typer>=0.12",
+    "pyyaml>=6.0",
+    "librosa>=0.11.0",
+    "soundfile>=0.14.0",
+]
+
+[project.optional-dependencies]
+# Heavy ML / platform deps are split so the core (models, compile, FCPXML, preview
+# control) installs without pulling multi-GB stacks. Install only what a task needs.
+vector = ["sqlite-vec>=0.1.6"]
+analyze-local = ["mlx-vlm>=0.1"]
+analyze-api = ["anthropic>=0.40"]
+transcribe = ["mlx-whisper>=0.4"]
+# NB: the insightface buffalo model pack is non-commercial research only (THIRD_PARTY_NOTICES.md)
+faces = ["insightface>=1.0.1", "onnxruntime>=1.26.0"]
+preview = [
+    "pyobjc-framework-Cocoa>=10.3",
+    "pyobjc-framework-AVFoundation>=10.3",
+    "pyobjc-framework-AVKit>=10.3",
+    "pyobjc-framework-CoreMedia>=10.3",
+    "pyobjc-framework-Quartz>=10.3",
+]
+all = [
+    "composerv[vector,analyze-local,analyze-api,transcribe,faces,preview]",
+]
+
+[project.scripts]
+composerv = "composerv.cli.main:app"
+composerv-preview = "composerv.render.preview.player:main"
+
+[dependency-groups]
+dev = [
+    "lxml>=6.1.1",
+    "pytest>=8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["composerv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

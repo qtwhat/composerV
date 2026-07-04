@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>composerV · 本地优先的记忆 reel 助手</title>
+<style>
+:root{
+  --ivory:#FAF9F5; --paper:#FFFFFF; --slate:#141413; --clay:#D97757; --clay-d:#B85C3E;
+  --oat:#E3DACC; --olive:#788C5D; --olive-l:#E8EDDF; --red:#C5453A; --red-l:#FCEEED;
+  --gray-100:#F5F4EE; --gray-150:#F0EEE6; --gray-200:#E6E3DA; --gray-300:#D1CFC5;
+  --gray-500:#87867F; --gray-700:#3D3D3A;
+  --sans:"PingFang SC",-apple-system,"Noto Sans SC","Microsoft YaHei","Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,"Noto Sans Mono",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ivory);color:var(--gray-700);font-family:var(--sans);
+  font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1520px;margin:0 auto;padding:36px 28px 80px}
+.eyebrow{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--gray-500);margin:0 0 8px}
+h1{font-size:30px;font-weight:600;letter-spacing:-.01em;color:var(--slate);margin:0 0 16px}
+h2{font-size:21px;font-weight:600;letter-spacing:-.01em;color:var(--slate);margin:0 0 4px}
+h3{font-size:15px;font-weight:600;color:var(--slate);margin:0 0 6px}
+.tldr{background:var(--paper);border-left:3px solid var(--clay);border-radius:8px;
+  padding:14px 18px;margin:0 0 18px;font-size:14.5px}
+.tldr b{color:var(--slate)}
+.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:12.5px;color:var(--gray-700)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.dot{width:12px;height:12px;border-radius:3px;display:inline-block}
+.line-dot{width:18px;height:0;border-top:2.5px solid;display:inline-block}
+
+/* layout: main + sticky aside */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:30px;align-items:start;margin-top:26px}
+.main{min-width:0}
+section{margin-top:46px}
+section:first-child{margin-top:0}
+.sec-head{margin-bottom:18px}
+
+/* aside */
+.aside{position:sticky;top:16px;align-self:start;height:calc(100vh - 32px)}
+.aside-card{height:100%;display:flex;flex-direction:column;background:var(--paper);
+  border:1.5px solid var(--gray-300);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(20,20,19,.04)}
+.aside-head{padding:13px 18px;border-bottom:1px solid var(--gray-200);display:flex;
+  align-items:center;justify-content:space-between;background:var(--gray-100)}
+.aside-head b{color:var(--slate);font-size:14px}
+.aside-head .hint{font-family:var(--mono);font-size:10.5px;color:var(--gray-500)}
+.explain{padding:16px 18px 22px;overflow-y:auto;flex:1}
+.ex-back{font-family:var(--mono);font-size:11.5px;color:var(--clay-d);cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;margin-bottom:14px;user-select:none}
+.ex-back:hover{color:var(--clay)}
+.ex-term{font-size:18px;font-weight:600;color:var(--slate);letter-spacing:-.01em}
+.ex-cat{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;
+  padding:2px 8px;border-radius:20px;margin-bottom:10px}
+.ex-def{font-size:13.5px;line-height:1.75;color:var(--gray-700);margin:6px 0 0}
+.ex-def code{font-family:var(--mono);font-size:11.5px;background:var(--gray-100);padding:1px 5px;border-radius:4px}
+.ex-rel{margin-top:16px;padding-top:12px;border-top:1px solid var(--gray-200)}
+.ex-rel .lab{font-family:var(--mono);font-size:10.5px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.chip{display:inline-block;font-size:12px;background:var(--gray-100);border:1px solid var(--gray-200);
+  color:var(--gray-700);padding:3px 10px;border-radius:20px;margin:0 6px 6px 0;cursor:pointer;transition:.12s}
+.chip:hover{background:var(--oat);border-color:var(--clay);color:var(--clay-d)}
+.idx-intro{font-size:12.5px;color:var(--gray-500);margin:0 0 16px;line-height:1.65}
+.idx-group{margin-bottom:16px}
+.idx-group .gh{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--clay-d);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+
+/* clickable inline term */
+.term{border-bottom:1px dashed var(--clay);cursor:pointer;color:inherit;
+  transition:background .12s;border-radius:2px;padding:0 1px}
+.term:hover{background:var(--oat)}
+
+/* diagram */
+.diagram-wrap{background:var(--paper);border:1.5px solid var(--gray-300);border-radius:12px;
+  padding:18px 14px 8px;overflow-x:auto}
+.diagram-hint{font-size:12.5px;color:var(--gray-500);margin:2px 4px 10px;font-family:var(--mono)}
+.topsvg{display:block;min-width:960px;width:100%;height:auto}
+.node{cursor:pointer}
+.node rect{transition:fill .15s,stroke .15s}
+.node:hover rect{fill:var(--oat);stroke:var(--clay)}
+.node .nt{font-weight:600;fill:var(--slate);font-size:15px}
+.node .nc{fill:var(--clay-d);font-size:11.5px;font-family:var(--mono)}
+
+/* module cards (stacked, full width) */
+.card{background:var(--paper);border:1.5px solid var(--gray-300);border-radius:14px;
+  padding:20px 22px;scroll-margin-top:18px;transition:box-shadow .25s,border-color .25s;margin-bottom:20px}
+.card.active{border-color:var(--clay);box-shadow:0 0 0 3px rgba(217,119,87,.18)}
+.card-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;
+  padding-bottom:12px;border-bottom:1px solid var(--gray-200)}
+.card-head h3{margin:0;font-size:16px}
+.cli{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#E8E6DE;
+  padding:2px 8px;border-radius:6px}
+.tag{font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:20px;font-weight:600}
+.tag.slow{background:var(--red-l);color:var(--red)}
+.tag.fast{background:var(--olive-l);color:var(--olive)}
+.tag.io{background:var(--gray-150);color:var(--gray-500)}
+.st{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+.st.done{background:var(--olive-l);color:var(--olive)}
+.st.plan{background:rgba(217,119,87,.16);color:var(--clay-d)}
+.st.disc{background:var(--gray-150);color:var(--gray-500)}
+.card.plan{border:1.5px dashed var(--clay);background:#FFFBF8}
+.card.plan.active{border-style:solid}
+.minisvg .plan-b{fill:#FFF4EE;stroke:#D97757;stroke-dasharray:5 3}
+.inline-st{font-family:var(--mono);font-size:9.5px;font-weight:600;padding:1px 6px;border-radius:10px;background:rgba(217,119,87,.16);color:var(--clay-d);vertical-align:middle}
+.struct-lab{font-family:var(--mono);font-size:11px;color:var(--gray-500);text-transform:uppercase;
+  letter-spacing:.06em;margin:14px 0 2px}
+.minisvg{display:block;width:100%;height:auto;margin:2px 0 6px}
+.minisvg text{stroke:none;paint-order:fill}
+.minisvg .b{fill:var(--paper);stroke:var(--gray-300);stroke-width:1.5}
+.minisvg .b.click{cursor:pointer;transition:.15s}
+.minisvg .b.click:hover{fill:var(--oat);stroke:var(--clay)}
+.minisvg .b.dark{fill:#141413;stroke:#141413}
+.minisvg .lbl{fill:var(--slate);font-weight:600;font-family:var(--sans)}
+.minisvg .sub{fill:var(--gray-500);font-family:ui-monospace,Menlo,monospace}
+.minisvg .dlbl{fill:#E8E6DE;font-weight:600;font-family:ui-monospace,Menlo,monospace}
+.minisvg .cap{fill:var(--gray-500);font-family:var(--sans);font-style:normal}
+.kv{margin-top:14px}
+.kv .row{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:7px 0;border-top:1px solid var(--gray-150)}
+.kv .row:first-child{border-top:none}
+.kv .k{font-size:12px;font-weight:600;color:var(--clay-d);font-family:var(--mono);padding-top:1px}
+.kv .v{font-size:13.5px}
+.kv .v code,.inline-code{font-family:var(--mono);font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px;color:var(--gray-700)}
+.files{font-family:var(--mono);font-size:11.5px;color:var(--gray-500);line-height:1.9}
+.note-flow{margin-top:12px;font-size:12.5px;color:var(--gray-700);background:var(--gray-100);border-radius:8px;padding:8px 12px}
+.note-flow b{color:var(--olive)}
+
+.qt{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;font-weight:600;white-space:nowrap}
+.qt.sharp{background:var(--olive-l);color:var(--olive)}
+.qt.weak{background:var(--red-l);color:var(--red)}
+
+pre.code{background:var(--slate);color:#E8E6DE;font-family:var(--mono);font-size:12.5px;
+  line-height:1.65;padding:16px 18px;border-radius:10px;overflow-x:auto;margin:0;white-space:pre}
+pre.code .cm{color:#9aa088}
+pre.code .ph{background:rgba(217,119,87,.28);color:#FFE2D4;border-radius:3px;padding:0 3px}
+pre.code .hot{background:rgba(120,140,93,.22);display:inline-block;width:100%;border-radius:2px}
+pre.code .k2{color:#E3B7A0}
+
+.tabs{background:var(--paper);border:1.5px solid var(--gray-300);border-radius:12px;overflow:hidden}
+.tabbar{display:flex;border-bottom:1px solid var(--gray-200);background:var(--gray-100)}
+.tabbar button{flex:0 0 auto;border:none;background:none;font-family:var(--sans);font-size:13.5px;
+  font-weight:600;color:var(--gray-500);padding:12px 20px;cursor:pointer;border-bottom:2px solid transparent}
+.tabbar button.on{color:var(--slate);border-bottom-color:var(--clay);background:var(--paper)}
+.panel{display:none;padding:20px}
+.panel.on{display:block}
+.panel .step{font-size:12px;font-family:var(--mono);color:var(--clay-d);font-weight:600;margin:18px 0 8px}
+.panel .step:first-child{margin-top:0}
+.anno{font-size:13px;color:var(--gray-700);margin:10px 0 0}
+.anno b{color:var(--slate)}
+
+details{background:var(--paper);border:1.5px solid var(--gray-300);border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden}
+details summary{cursor:pointer;list-style:none;padding:13px 18px;font-weight:600;color:var(--slate);font-size:14px;display:flex;align-items:center;gap:10px}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸";color:var(--clay);font-size:12px;transition:transform .2s}
+details[open] summary::before{transform:rotate(90deg)}
+details summary .meta{font-family:var(--mono);font-size:11px;color:var(--gray-500);font-weight:400;margin-left:auto}
+details .body{padding:0 18px 18px}
+.flow-chain{font-family:var(--mono);font-size:12.5px;line-height:2;color:var(--gray-700)}
+.flow-chain .arr{color:var(--clay);font-weight:700}
+.flow-chain b{color:var(--slate)}
+footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--gray-200);font-size:12px;color:var(--gray-500);font-family:var(--mono)}
+
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .aside{position:static;height:auto;order:-1}
+  .aside-card{max-height:62vh}
+  .wrap{padding:24px 16px 60px}
+  h1{font-size:25px}
+}
+</style>
+</head>
+<body>
+
+<!-- shared arrowhead markers, referenced by all svgs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="ah-slate" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#141413"/></marker>
+  <marker id="ah-olive" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#788C5D"/></marker>
+  <marker id="ah-clay" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#D97757"/></marker>
+  <marker id="ah-gray" markerWidth="8" markerHeight="8" refX="6.5" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L6.5,3 L0,6 Z" fill="#87867F"/></marker>
+</defs></svg>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">story-first · 本地优先 · macOS / Apple Silicon</p>
+  <h1>composerV</h1>
+  <p style="margin:0 0 14px;font-size:15px;color:var(--gray-700)">把个人视频档案变成配乐卡拍的 memory reel：本地感知（VLM 看画面 + Whisper 听声音 + Apple Vision 审美），Claude 当剪辑师，零渲染实时预览，最后交给 Final Cut Pro 收尾。素材永远留在本机。</p>
+  <div class="tldr" style="border-left-color:var(--olive)">
+    <b>跑起来</b>：<code class="inline-code">uv sync</code> → <code class="inline-code">uv run composerv demo ./composerv-demo</code>（生成全合成演示素材，零下载）→ 按打印出的 catalog / music index / analyze / montage 四步出片。导演步需要 <code class="inline-code">claude</code> CLI 或 <code class="inline-code">ANTHROPIC_API_KEY</code>。代码 MIT；模型许可（含 insightface 非商业限制）见 THIRD_PARTY_NOTICES.md。
+  </div>
+  <div class="tldr">
+    四个阶段串成一条线：<b>① 摄取 catalog → ② 分析 analyze → ③ 导演 montage → ④ 渲染 preview / export</b>，
+    全部围绕一个中央 <span class="term" data-k="assets">SQLite store</span> 运转。
+    慢的感知分析（<span class="term" data-k="VLM">VLM</span> 看画面 + <span class="term" data-k="Whisper">Whisper</span> 听声音 + on-device
+    <span class="term" data-k="aesthetics">美学打分</span>）<b>只跑一次并写入 store</b>；导演每次只<b>读缓存</b>，所以出片、改片都快。
+    导演是一次 LLM 调用：把素材编成一张文字 <span class="term" data-k="footage_table">footage table</span>，让 Claude 读完后给出剪辑决策。
+  </div>
+  <div class="legend">
+    <span><i class="dot" style="background:var(--gray-150);border:1.5px solid var(--gray-300)"></i>处理阶段（可点击）</span>
+    <span><i class="dot" style="background:var(--slate)"></i>store / 代码</span>
+    <span><i class="line-dot" style="border-color:var(--olive)"></i>写入 store</span>
+    <span><i class="line-dot" style="border-color:var(--clay);border-top-style:dashed"></i>读取 store</span>
+    <span><span class="st done">已实现</span> <span class="st plan">规划中</span> 模块状态</span>
+    <span><svg width="22" height="14" style="vertical-align:middle"><rect x="1" y="1" width="20" height="12" rx="3" fill="#FFF4EE" stroke="#D97757" stroke-width="1.3" stroke-dasharray="4 2"/></svg> 虚线框 = 规划中</span>
+    <span><span class="term" data-k="footage_table" style="border-bottom-style:dashed">虚线词</span> = 点开看右侧解释</span>
+  </div>
+</header>
+
+<!-- ============ 数据流总图（整页宽） ============ -->
+<section>
+  <div class="sec-head"><p class="eyebrow">overview</p><h2>数据流总图</h2></div>
+  <div class="diagram-wrap">
+    <p class="diagram-hint">点阶段方块 → 跳到下方详情　·　点虚线术语 → 右侧解释　·　实线=已实现，虚线框=规划中</p>
+    <svg class="topsvg" viewBox="0 52 1460 332" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#141413" stroke-width="2" marker-end="url(#ah-slate)">
+        <line x1="138" y1="102" x2="188" y2="102"/><line x1="358" y1="102" x2="408" y2="102"/>
+        <line x1="578" y1="102" x2="628" y2="102"/><line x1="798" y1="102" x2="848" y2="102"/>
+        <line x1="1018" y1="102" x2="1068" y2="102"/><line x1="1238" y1="102" x2="1288" y2="102"/>
+      </g>
+      <g font-size="11" fill="#3D3D3A" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" style="paint-order:stroke;stroke:#FFFFFF;stroke-width:3px">
+        <text x="163" y="92">catalog</text><text x="383" y="92">analyze</text>
+        <text x="603" y="92">confirm</text><text x="823" y="92">montage</text><text x="1043" y="92">preview</text>
+      </g>
+
+      <g>
+        <rect x="18" y="74" width="120" height="56" rx="10" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text x="78" y="98" text-anchor="middle" font-size="13" fill="#141413" font-weight="600" font-family="'PingFang SC',-apple-system,'Microsoft YaHei','Segoe UI',sans-serif">媒体文件夹</text>
+        <text x="78" y="116" text-anchor="middle" font-size="10.5" fill="#87867F" font-family="ui-monospace,Menlo,monospace">视频 · 照片</text>
+      </g>
+      <g class="node" data-target="card-ingest">
+        <rect x="192" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text class="nt" x="275" y="88" text-anchor="middle">① 摄取 INGEST</text>
+        <text class="nc" x="275" y="108" text-anchor="middle">composerv catalog</text>
+        <text x="275" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● 已实现</text>
+      </g>
+      <g class="node" data-target="card-analyze">
+        <rect x="412" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text class="nt" x="495" y="88" text-anchor="middle">② 分析 ANALYZE</text>
+        <text class="nc" x="495" y="108" text-anchor="middle">composerv analyze</text>
+        <text x="495" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● 已实现</text>
+      </g>
+      <g class="node" data-target="card-confirm">
+        <rect x="632" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text class="nt" x="715" y="88" text-anchor="middle">③ 确认 CONFIRM</text>
+        <text class="nc" x="715" y="108" text-anchor="middle">人像确认 + 用户输入</text>
+        <text x="715" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● 已实现</text>
+      </g>
+      <g class="node" data-target="card-director">
+        <rect x="852" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text class="nt" x="935" y="88" text-anchor="middle">④ 导演 DIRECTOR</text>
+        <text class="nc" x="935" y="108" text-anchor="middle">composerv montage</text>
+        <text x="935" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● 已实现</text>
+      </g>
+      <g class="node" data-target="card-render">
+        <rect x="1072" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text class="nt" x="1155" y="88" text-anchor="middle">⑤ 渲染 RENDER</text>
+        <text class="nc" x="1155" y="108" text-anchor="middle">preview · export</text>
+        <text x="1155" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● 已实现</text>
+      </g>
+      <g>
+        <rect x="1292" y="74" width="134" height="56" rx="10" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text x="1359" y="98" text-anchor="middle" font-size="12" fill="#141413" font-weight="600" font-family="'PingFang SC',-apple-system,'Microsoft YaHei','Segoe UI',sans-serif">预览 / FCPXML</text>
+        <text x="1359" y="116" text-anchor="middle" font-size="10.5" fill="#87867F" font-family="ui-monospace,Menlo,monospace">storyboard · mp4</text>
+      </g>
+
+      <g stroke="#788C5D" stroke-width="2" marker-end="url(#ah-olive)">
+        <line x1="275" y1="140" x2="275" y2="244"/><line x1="495" y1="140" x2="495" y2="244"/>
+      </g>
+      <line x1="715" y1="140" x2="715" y2="244" stroke="#D97757" stroke-width="2" marker-end="url(#ah-clay)" marker-start="url(#ah-clay)"/>
+      <line x1="935" y1="246" x2="935" y2="142" stroke="#D97757" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ah-clay)"/>
+      <g font-size="11" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" style="paint-order:stroke;stroke:#FFFFFF;stroke-width:3.5px">
+        <text x="275" y="196" fill="#788C5D" font-weight="600">写入</text>
+        <text x="495" y="196" fill="#788C5D" font-weight="600">写入</text>
+        <text x="715" y="196" fill="#D97757" font-weight="600">读/写</text>
+        <text x="935" y="196" fill="#D97757" font-weight="600">读取</text>
+      </g>
+
+      <rect x="192" y="246" width="1046" height="126" rx="12" fill="#141413"/>
+      <text x="210" y="270" font-size="13" fill="#E8E6DE" font-weight="600" font-family="'PingFang SC',-apple-system,'Microsoft YaHei','Segoe UI',sans-serif">SQLite store · composerv.db</text>
+      <text x="1222" y="270" font-size="10.5" fill="#9aa088" text-anchor="end" font-family="ui-monospace,Menlo,monospace">一次分析，多次复用</text>
+      <g font-size="11.5" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">
+        <text x="210" y="296"><tspan fill="#788C5D">catalog 写</tspan>  → assets · clarity · clip_summaries · keyframes · captions</text>
+        <text x="210" y="316"><tspan fill="#788C5D">analyze 写</tspan>  → clip_moments · transcript · clip_aesthetics</text>
+        <text x="210" y="336"><tspan fill="#D97757">confirm 读/写</tspan>  → persons（人名 + 备注）· briefs（用户输入）</text>
+        <text x="210" y="356"><tspan fill="#D97757">montage 读</tspan>  → moments + transcript + aesthetics + 人名 + 用户输入  ⇒  footage table</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<div class="layout">
+<main class="main">
+
+<!-- ============ 模块详情 ============ -->
+<section>
+  <div class="sec-head"><p class="eyebrow">modules</p><h2>模块详情：内部结构 · 输入 · 输出</h2></div>
+
+  <!-- INGEST -->
+  <div class="card" id="card-ingest">
+    <div class="card-head"><h3>① 摄取 INGEST</h3><span class="cli">composerv catalog</span><span class="st done">已实现</span></div>
+    <div class="struct-lab">内部结构</div>
+    <svg class="minisvg" viewBox="0 0 1000 118" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#87867F" stroke-width="1.6" marker-end="url(#ah-gray)">
+        <line x1="180" y1="59" x2="210" y2="59"/><line x1="384" y1="59" x2="414" y2="59"/><line x1="630" y1="59" x2="660" y2="59"/>
+      </g>
+      <g><rect class="b" x="10" y="32" width="170" height="54" rx="9"/>
+        <text class="lbl" x="95" y="56" text-anchor="middle" font-size="13.5">扫描 · 探测</text>
+        <text class="sub" x="95" y="74" text-anchor="middle" font-size="10.5">ffprobe 元数据</text></g>
+      <g class="b click" data-k="proxy"><rect class="b click" x="214" y="32" width="170" height="54" rx="9"/>
+        <text class="lbl" x="299" y="56" text-anchor="middle" font-size="13.5">生成 proxy</text>
+        <text class="sub" x="299" y="74" text-anchor="middle" font-size="10.5">CFR H.264 代理</text></g>
+      <g class="b click" data-k="keyframes"><rect class="b click" x="460" y="32" width="170" height="54" rx="9"/>
+        <text class="lbl" x="545" y="56" text-anchor="middle" font-size="13.5">摘要 + 关键帧</text>
+        <text class="sub" x="545" y="74" text-anchor="middle" font-size="10.5">VLM/Claude · 4 帧</text></g>
+      <g class="b click" data-k="clarity"><rect class="b click dark" x="664" y="32" width="326" height="54" rx="9"/>
+        <text class="dlbl" x="827" y="54" text-anchor="middle" font-size="12.5">写入 store</text>
+        <text x="827" y="72" text-anchor="middle" font-size="10.5" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">assets · clarity · clip_summaries · keyframes</text></g>
+    </svg>
+    <div class="kv">
+      <div class="row"><div class="k">功能</div><div class="v">扫描目录、探测媒体元数据，生成统一 <span class="term" data-k="CFR">恒定帧率</span> 的 <span class="term" data-k="proxy">proxy</span> 代理片，用本地 VLM 或 Claude 写一句摘要，抽 4 张代表性 <span class="term" data-k="keyframes">关键帧</span>，全部写入 store。</div></div>
+      <div class="row"><div class="k">输入</div><div class="v">一个媒体目录路径。</div></div>
+      <div class="row"><div class="k">输出</div><div class="v">store 表 <span class="term" data-k="assets">assets</span> · <span class="term" data-k="clarity">clarity</span> · <span class="term" data-k="clip_summaries">clip_summaries</span> · <span class="term" data-k="keyframes">keyframes</span>；磁盘上的 proxy 与缩略图。</div></div>
+      <div class="row"><div class="k">文件</div><div class="v"><span class="files">index/scanner.py · index/proxy.py · clarity/ingest.py · clarity/summarize.py · clarity/keyframes.py · store/db.py</span></div></div>
+    </div>
+    <div class="note-flow">传给下游：store 里的资产清单 + proxy 路径，供 ② 分析读取。</div>
+  </div>
+
+  <!-- ANALYZE -->
+  <div class="card" id="card-analyze">
+    <div class="card-head"><h3>② 分析 ANALYZE</h3><span class="cli">composerv analyze</span><span class="st done">已实现</span><span class="tag slow">慢 · 只跑一次</span></div>
+    <div class="struct-lab">内部结构 · 三路并行：看 / 听 / 审美</div>
+    <svg class="minisvg" viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+      <!-- proxy -> 3 senses -->
+      <g stroke="#87867F" stroke-width="1.6" fill="none">
+        <path d="M136,105 C220,105 220,42 296,42" marker-end="url(#ah-gray)"/>
+        <path d="M136,105 L296,105" marker-end="url(#ah-gray)"/>
+        <path d="M136,105 C220,105 220,168 296,168" marker-end="url(#ah-gray)"/>
+      </g>
+      <!-- senses -> store tables -->
+      <g stroke="#788C5D" stroke-width="1.8" marker-end="url(#ah-olive)">
+        <line x1="604" y1="42" x2="700" y2="42"/><line x1="604" y1="105" x2="700" y2="105"/><line x1="604" y1="168" x2="700" y2="168"/>
+      </g>
+      <g class="b click" data-k="proxy"><rect class="b click" x="14" y="80" width="122" height="50" rx="9"/>
+        <text class="lbl" x="75" y="102" text-anchor="middle" font-size="13">proxy 片</text>
+        <text class="sub" x="75" y="119" text-anchor="middle" font-size="10">输入帧源</text></g>
+      <!-- 视觉 -->
+      <g class="b click" data-k="sub_vlm"><rect class="b click" x="300" y="16" width="304" height="52" rx="9"/>
+        <text class="lbl" x="318" y="40" font-size="13.5">👁 视觉 · VLM</text>
+        <text class="sub" x="318" y="58" font-size="10.5">caption + OCR + grounded objects</text></g>
+      <!-- 听觉 -->
+      <g class="b click" data-k="sub_whisper"><rect class="b click" x="300" y="79" width="304" height="52" rx="9"/>
+        <text class="lbl" x="318" y="103" font-size="13.5">👂 听觉 · MLX-Whisper</text>
+        <text class="sub" x="318" y="121" font-size="10.5">转写台词（带起止时间）</text></g>
+      <!-- 美学 -->
+      <g class="b click" data-k="sub_aesthetics"><rect class="b click" x="300" y="142" width="304" height="52" rx="9"/>
+        <text class="lbl" x="318" y="166" font-size="13.5">✦ 美学 · Apple Vision</text>
+        <text class="sub" x="318" y="184" font-size="10.5">逐帧打分 → best_t + 质量标签</text></g>
+      <!-- store table chips -->
+      <g class="b click" data-k="clip_moments"><rect class="b click dark" x="700" y="22" width="290" height="40" rx="8"/>
+        <text class="dlbl" x="845" y="46" text-anchor="middle" font-size="12">clip_moments</text></g>
+      <g class="b click" data-k="transcript"><rect class="b click dark" x="700" y="85" width="290" height="40" rx="8"/>
+        <text class="dlbl" x="845" y="109" text-anchor="middle" font-size="12">transcript</text></g>
+      <g class="b click" data-k="clip_aesthetics"><rect class="b click dark" x="700" y="148" width="290" height="40" rx="8"/>
+        <text class="dlbl" x="845" y="172" text-anchor="middle" font-size="12">clip_aesthetics</text></g>
+    </svg>
+    <p class="anno" style="margin:2px 0 0;font-size:12.5px;color:var(--gray-500)">三条支路从同一份 proxy 出发，分别提取视觉 / 听觉 / 美学信息，各自写进 store 的一张表。美学可用 <code class="inline-code">--no-aesthetics</code> 关掉。</p>
+    <div class="kv">
+      <div class="row"><div class="k">功能</div><div class="v">对每个片段做一次深度感知并缓存：<span class="term" data-k="sub_vlm">VLM 抽视觉时刻</span>、<span class="term" data-k="sub_whisper">Whisper 转写台词</span>、按需 <span class="term" data-k="sub_aesthetics">on-device 美学打分</span>。导演以后直接读缓存，不再重跑模型。</div></div>
+      <div class="row"><div class="k">输入</div><div class="v"><code>analyze_scope(store, paths, *, aes_fps=2.0, enable_aesthetics=True, ...)</code>；CLI 旗标 <code>--aes-fps</code> / <code>--no-aesthetics</code>。</div></div>
+      <div class="row"><div class="k">输出</div><div class="v">写入 <span class="term" data-k="clip_moments">clip_moments</span> · <span class="term" data-k="transcript">transcript</span> · <span class="term" data-k="clip_aesthetics">clip_aesthetics</span>。</div></div>
+      <div class="row"><div class="k">文件</div><div class="v"><span class="files">clarity/analyze.py · clarity/understand.py · audio/transcribe.py · analyze/aesthetics.py</span></div></div>
+    </div>
+    <div class="note-flow">传给下游：导演要读的三张感知表（<b>clip_moments · transcript · clip_aesthetics</b>）。</div>
+  </div>
+
+  <!-- AESTHETICS sub-card -->
+  <div class="card" id="card-aesthetics">
+    <div class="card-head"><h3>② · 子模块 美学打分 AESTHETICS</h3><span class="st done">已实现</span><span class="tag io">analyze 内部</span></div>
+    <div class="struct-lab">内部结构</div>
+    <svg class="minisvg" viewBox="0 0 1000 110" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#87867F" stroke-width="1.6" marker-end="url(#ah-gray)">
+        <line x1="196" y1="55" x2="226" y2="55"/><line x1="452" y1="55" x2="482" y2="55"/></g>
+      <line x1="732" y1="55" x2="762" y2="55" stroke="#788C5D" stroke-width="1.8" marker-end="url(#ah-olive)"/>
+      <g><rect class="b" x="10" y="28" width="186" height="54" rx="9"/>
+        <text class="lbl" x="103" y="52" text-anchor="middle" font-size="13.5">抽帧 @ aes_fps</text>
+        <text class="sub" x="103" y="70" text-anchor="middle" font-size="10.5">默认 2 fps</text></g>
+      <g class="b click" data-k="score_frames"><rect class="b click" x="226" y="28" width="226" height="54" rx="9"/>
+        <text class="lbl" x="339" y="52" text-anchor="middle" font-size="13.5">Swift · Apple Vision</text>
+        <text class="sub" x="339" y="70" text-anchor="middle" font-size="10.5">逐帧打分 score_frames</text></g>
+      <g class="b click" data-k="distill_quality"><rect class="b click" x="482" y="28" width="250" height="54" rx="9"/>
+        <text class="lbl" x="607" y="52" text-anchor="middle" font-size="13.5">蒸馏标签 + 找 best_t</text>
+        <text class="sub" x="607" y="70" text-anchor="middle" font-size="10.5">distill_quality / best_moment</text></g>
+      <g class="b click" data-k="clip_aesthetics"><rect class="b click dark" x="762" y="28" width="228" height="54" rx="9"/>
+        <text class="dlbl" x="876" y="50" text-anchor="middle" font-size="12">clip_aesthetics</text>
+        <text x="876" y="68" text-anchor="middle" font-size="10" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">best_t + curve</text></g>
+    </svg>
+    <div class="note-flow" style="background:var(--paper);border:1px solid var(--gray-200)">
+      <b style="color:var(--slate)">分数 → 标签阈值</b>（<span class="term" data-k="distill_quality">distill_quality</span>）：
+      <span class="qt sharp">[清晰·构图好]</span> 当 <code class="inline-code">score ≥ 0.4</code> 且非 <span class="term" data-k="utility_frame">utility</span>；
+      <span class="qt weak">[弱/过渡]</span> 当 utility 或 <code class="inline-code">score ≤ -0.2</code>；中间区间 → 空标签。<br>
+      <b style="color:var(--clay-d)">最近决策</b>：美学只挑 <span class="term" data-k="in_point">入点</span>，<b style="color:var(--clay-d)">不参与片段取舍</b>。一次人类盲测发现按画质删片会误删情感片段，故收回。
+    </div>
+  </div>
+
+  <!-- CONFIRM (new, planned requirement) -->
+  <div class="card" id="card-confirm">
+    <div class="card-head"><h3>③ 确认 CONFIRM</h3><span class="cli">composerv confirm</span><span class="st done">已实现</span></div>
+    <div class="struct-lab">内部结构 · 感知之后的一次人机确认</div>
+    <svg class="minisvg" viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#87867F" stroke-width="1.6" fill="none">
+        <path d="M170,40 C240,40 240,50 298,50" marker-end="url(#ah-gray)" marker-start="url(#ah-gray)"/>
+        <path d="M170,48 C236,82 244,150 298,158" marker-end="url(#ah-gray)"/>
+        <path d="M170,134 C242,134 242,86 298,86" marker-end="url(#ah-gray)" marker-start="url(#ah-gray)"/>
+        <path d="M650,50 C684,50 684,86 712,90" marker-end="url(#ah-gray)"/>
+        <path d="M650,158 C686,158 690,120 712,116" marker-end="url(#ah-gray)"/>
+      </g>
+      <g class="b click" data-k="user_brief"><rect class="b" x="12" y="16" width="158" height="46" rx="9"/>
+        <text class="lbl" x="91" y="38" text-anchor="middle" font-size="13" fill="#B85C3E">👤 用户</text>
+        <text class="sub" x="91" y="54" text-anchor="middle" font-size="10">交互确认</text></g>
+      <g class="b click" data-k="persons"><rect class="b click dark" x="12" y="111" width="158" height="46" rx="9"/>
+        <text class="dlbl" x="91" y="131" text-anchor="middle" font-size="11.5">persons / faces</text>
+        <text x="91" y="148" text-anchor="middle" font-size="9.5" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">已检测人脸</text></g>
+      <g class="b click" data-k="sub_confirm_faces"><rect class="b click" x="300" y="22" width="350" height="58" rx="9"/>
+        <text class="lbl" x="318" y="46" font-size="13.5" fill="#B85C3E">👥 人像确认</text>
+        <text class="sub" x="318" y="65" font-size="10.5">对照人物库问「这是谁?」· 可跳过 · 名字写回本地</text></g>
+      <g class="b click" data-k="sub_user_meta"><rect class="b click" x="300" y="128" width="350" height="58" rx="9"/>
+        <text class="lbl" x="318" y="152" font-size="13.5" fill="#B85C3E">📝 用户输入 meta</text>
+        <text class="sub" x="318" y="171" font-size="10.5">额外上下文 / 风格需求（自由文本）</text></g>
+      <g class="b click" data-k="user_brief"><rect class="b click dark" x="712" y="72" width="276" height="62" rx="9"/>
+        <text class="dlbl" x="850" y="98" text-anchor="middle" font-size="12.5">用户输入 · user_brief</text>
+        <text x="850" y="118" text-anchor="middle" font-size="10" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">统一标签 → 喂给导演</text></g>
+    </svg>
+    <p class="anno" style="margin:2px 0 0;font-size:12.5px;color:var(--gray-500)">感知跑完后插入这一步：把检测到的人脸拿给用户认领，并收集用户的补充说明，整理成「用户输入」。用户可随时跳过。</p>
+    <div class="kv">
+      <div class="row"><div class="k">功能</div><div class="v">两件事：①「<span class="term" data-k="sub_confirm_faces">人像确认</span>」把感知到的人脸/人物簇拿给用户，对照本地<span class="term" data-k="persons">人物库</span>问「这是谁」，用户给名字或跳过，名字写回本地库；②「<span class="term" data-k="sub_user_meta">用户输入 meta</span>」让用户补充额外上下文、风格需求等自由文本。两者整理后统一标签为<span class="term" data-k="user_brief">用户输入</span>。</div></div>
+      <div class="row"><div class="k">输入</div><div class="v">感知结果里的人脸/人物簇（来自 <span class="term" data-k="faces">faces</span>）+ 已有 <span class="term" data-k="persons">persons</span> 人物库；以及用户的交互输入。</div></div>
+      <div class="row"><div class="k">输出</div><div class="v">更新本地 <code>persons</code> 人名；一个 <span class="term" data-k="user_brief">user_brief</span>（用户输入）打包，喂给导演。</div></div>
+      <div class="row"><div class="k">文件</div><div class="v"><span class="files">confirm/form.py · confirm/apply.py · confirm/server.py · confirm/enroll_glue.py · faces/review.py · store/db.py（persons.note + briefs 表）</span></div></div>
+    </div>
+    <div class="note-flow" style="background:#FFF6F1;border:1px solid rgba(217,119,87,.3)"><b style="color:var(--clay-d)">交给导演</b>：用户输入作为<b style="color:var(--clay-d)">最高优先级的人类指引</b>注入导演 prompt，呼应导演 rule 1「Human-led」。实现：<code class="inline-code">composerv confirm &lt;scope&gt;</code> 先 ensure_faces（缺脸补检 + 重聚类），再开本地浏览器表单，保存写回 persons/briefs；montage 按 scope 读 brief 注入导演 prompt 的 HUMAN BRIEF 段，人物备注随 who 字段进素材表。</div>
+  </div>
+
+  <!-- DIRECTOR -->
+  <div class="card" id="card-director">
+    <div class="card-head"><h3>④ 导演 DIRECTOR</h3><span class="cli">composerv montage</span><span class="st done">已实现</span><span class="tag fast">快 · 读缓存</span></div>
+    <div class="struct-lab">内部结构</div>
+    <svg class="minisvg" viewBox="0 0 1000 120" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#87867F" stroke-width="1.6" marker-end="url(#ah-gray)">
+        <line x1="190" y1="60" x2="212" y2="60"/><line x1="384" y1="60" x2="406" y2="60"/>
+        <line x1="588" y1="60" x2="610" y2="60"/><line x1="746" y1="60" x2="768" y2="60"/></g>
+      <g class="b click" data-k="footage_table"><rect class="b click" x="8" y="32" width="182" height="56" rx="9"/>
+        <text class="lbl" x="99" y="56" text-anchor="middle" font-size="12.5">读 store → 拼表</text>
+        <text class="sub" x="99" y="74" text-anchor="middle" font-size="10">footage table</text></g>
+      <g class="b click" data-k="build_director_montage"><rect class="b click" x="212" y="32" width="172" height="56" rx="9"/>
+        <text class="lbl" x="298" y="56" text-anchor="middle" font-size="12.5">Claude 一次调用</text>
+        <text class="sub" x="298" y="74" text-anchor="middle" font-size="10">opus-4-6</text></g>
+      <g class="b click" data-k="parse_edit"><rect class="b click" x="406" y="32" width="182" height="56" rx="9"/>
+        <text class="lbl" x="497" y="56" text-anchor="middle" font-size="12.5">parse · resolve · clamp</text>
+        <text class="sub" x="497" y="74" text-anchor="middle" font-size="10">还原 id / 钳制时长</text></g>
+      <g class="b click" data-k="split_edit_by_day"><rect class="b click" x="610" y="32" width="136" height="56" rx="9"/>
+        <text class="lbl" x="678" y="56" text-anchor="middle" font-size="12.5">按天拆分</text>
+        <text class="sub" x="678" y="74" text-anchor="middle" font-size="10">split_by_day</text></g>
+      <g class="b click" data-k="MontagePlan"><rect class="b click dark" x="768" y="32" width="224" height="56" rx="9"/>
+        <text class="dlbl" x="880" y="56" text-anchor="middle" font-size="12.5">MontagePlan[]</text>
+        <text x="880" y="74" text-anchor="middle" font-size="10" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">每天一段</text></g>
+    </svg>
+    <div class="kv">
+      <div class="row"><div class="k">功能</div><div class="v">从 store 拼 <span class="term" data-k="footage_table">footage table</span> → 交给 Claude 当剪辑师出决策 → 解析 JSON、<span class="term" data-k="resolve_segments">还原 clip_id</span>、按真实时长钳制 → <span class="term" data-k="split_edit_by_day">按天拆段</span>。详见下方「导演核心 Prompt」。</div></div>
+      <div class="row"><div class="k">输入</div><div class="v"><code>build_director_montage(store, scope_paths, *, music_dir, feeling=None, budget_s=120, max_part_s=300, sensitive=None, ...)</code><br>确认阶段的 <span class="term" data-k="user_brief">用户输入</span>（brief + 人物备注）经 <code>brief=</code> 参数注入 prompt 的 HUMAN BRIEF 段，作为最高优先级人类指引（呼应 rule 1）。</div></div>
+      <div class="row"><div class="k">输出</div><div class="v"><code>list[</code><span class="term" data-k="MontagePlan">MontagePlan</span><code>]</code>，含 <span class="term" data-k="feeling">feeling</span> / track / tempo / label / <span class="term" data-k="IntentionList">intention</span>。</div></div>
+      <div class="row"><div class="k">文件</div><div class="v"><span class="files">director/montage.py · director/table.py · director/prompt.py · director/plan.py · analyze/backends/claude_cli.py</span></div></div>
+    </div>
+    <div class="note-flow">传给下游：每段一个 <b>IntentionList</b>（剪辑决策表）+ <span class="term" data-k="MusicBed" style="color:var(--olive);font-weight:600">MusicBed</span>（配乐与 ducking 规则）。导演还输出一个 <span class="term" data-k="MusicIntent" style="color:var(--olive);font-weight:600">MusicIntent</span>（想要什么感觉，不点名曲子），具体哪首由确定性打分器 <span class="term" data-k="rank_tracks">rank_tracks</span> 定 —— 见下方「配乐怎么被选中」。</div>
+  </div>
+
+  <!-- RENDER -->
+  <div class="card" id="card-render">
+    <div class="card-head"><h3>⑤ 渲染 RENDER</h3><span class="cli">composerv preview / export</span><span class="st done">已实现</span></div>
+    <div class="struct-lab">内部结构 · 同一份 IntentionList 多种出口</div>
+    <svg class="minisvg" viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#87867F" stroke-width="1.6" fill="none">
+        <path d="M198,105 C300,105 300,32 408,32" marker-end="url(#ah-gray)"/>
+        <path d="M198,105 C300,105 300,82 408,82" marker-end="url(#ah-gray)"/>
+        <path d="M198,105 C300,105 300,132 408,132" marker-end="url(#ah-gray)"/>
+        <path d="M198,105 C300,105 300,182 408,182" marker-end="url(#ah-gray)"/></g>
+      <g class="b click" data-k="IntentionList"><rect class="b click" x="14" y="78" width="184" height="54" rx="9"/>
+        <text class="lbl" x="106" y="100" text-anchor="middle" font-size="13">IntentionList</text>
+        <text class="sub" x="106" y="118" text-anchor="middle" font-size="10">剪辑决策表</text></g>
+      <g><rect class="b" x="408" y="12" width="270" height="40" rx="8"/>
+        <text class="lbl" x="424" y="37" font-size="12.5">EDL 预览</text>
+        <text class="sub" x="540" y="37" font-size="10">proxy · 零渲染实时播放</text></g>
+      <g><rect class="b" x="408" y="62" width="270" height="40" rx="8"/>
+        <text class="lbl" x="424" y="87" font-size="12.5">FCPXML</text>
+        <text class="sub" x="540" y="87" font-size="10">引用原片 · 进 Final Cut</text></g>
+      <g><rect class="b" x="408" y="112" width="270" height="40" rx="8"/>
+        <text class="lbl" x="424" y="137" font-size="12.5">storyboard.html</text>
+        <text class="sub" x="560" y="137" font-size="10">关键帧分镜</text></g>
+      <g><rect class="b" x="408" y="162" width="270" height="40" rx="8"/>
+        <text class="lbl" x="424" y="187" font-size="12.5">lite.mp4</text>
+        <text class="sub" x="540" y="187" font-size="10">配乐 + ducking + 水印</text></g>
+    </svg>
+    <div class="kv">
+      <div class="row"><div class="k">功能</div><div class="v">同一份 <span class="term" data-k="IntentionList">IntentionList</span> 四种出口：EDL 预览（proxy 零渲染实时播放）、FCPXML（引用<b>原片</b>进 Final Cut 收尾）、storyboard 分镜、可选 MP4 导出（含 <span class="term" data-k="ducking">ducking</span> + 水印）。</div></div>
+      <div class="row"><div class="k">输入</div><div class="v"><code>IntentionList</code> + proxy / 原片路径映射。</div></div>
+      <div class="row"><div class="k">输出</div><div class="v"><code>*.edl.json</code> · <code>*.fcpxml</code> · <code>*_storyboard.html</code> · <code>*.lite.mp4</code></div></div>
+      <div class="row"><div class="k">文件</div><div class="v"><span class="files">render/preview/edl.py · render/preview/player.py · render/fcpxml/emitter.py · render/storyboard.py · render/export.py</span></div></div>
+    </div>
+    <div class="note-flow">最终产物：可在 FCP 继续打磨的工程，或直接可看的预览 / 成片。</div>
+  </div>
+
+  <!-- AUTO-REFRAME -->
+  <div class="card" id="card-reframe">
+    <div class="card-head"><h3>⑤ · 子模块 自动重构图 AUTO-REFRAME</h3><span class="st done">已实现</span><span class="tag io">render 内部</span></div>
+    <div class="kv">
+      <div class="row"><div class="k">功能</div><div class="v">竖屏/斜拍素材进 16:9 时间线时：裁切窗口跟着主体走（人脸/人物框驱动的平滑轨迹），旋转过的画面自动扶正，不留黑边。轨迹离线算好写进 store 的 <code class="inline-code">reframe_tracks</code> 表，导出时逐段应用。</div></div>
+      <div class="row"><div class="k">文件</div><div class="v"><span class="files">reframe/detect.py · reframe/track.py · reframe/path.py · render/reframe.py（export_reframed）</span></div></div>
+    </div>
+  </div>
+
+  <!-- DIRECTION 3 (planned) -->
+  <div class="card plan" id="card-direction3">
+    <div class="card-head"><h3>规划 · 音乐驱动剪辑（方向 3）</h3><span class="st plan">规划中</span></div>
+    <div class="kv">
+      <div class="row"><div class="k">思路</div><div class="v">两遍架构：第一遍照常情绪剪 + 选曲；分析选中曲子的结构（高潮点 <code class="inline-code">climax_t</code> + 乐句边界）后，第二遍轻量导演在保持粗时间序下局部重排、标出最强镜头；最后确定性对齐：<b>滑动音乐</b>（<code class="inline-code">MusicBed.start_offset_s</code>，不扭曲画面）把音乐高潮压到最强镜头上，切点按乐句卡拍。</div></div>
+      <div class="row"><div class="k">状态</div><div class="v">设计 spec 已过对抗评审（docs/superpowers/specs/2026-06-26-music-direction3-design.md），10 个 TDD 任务已计划，未开工。</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 导演核心 Prompt ============ -->
+<section>
+  <div class="sec-head"><p class="eyebrow">the director's brain</p><h2>导演模块核心 Prompt</h2>
+    <p style="margin:8px 0 0;font-size:14px;color:var(--gray-700)">导演不看视频，它把素材读成一张文字时间线再剪。Prompt 全文来自 <span class="inline-code">director/prompt.py</span>，逐字一致。</p>
+  </div>
+  <div class="tabs">
+    <div class="tabbar">
+      <button class="on" data-t="0">Prompt 全文</button>
+      <button data-t="1">Footage table 样例</button>
+      <button data-t="2">输入 → 输出契约</button>
+    </div>
+    <div class="panel on">
+      <div class="step">① PREAMBLE — 角色与任务（prompt.py:16-23）</div>
+      <pre class="code">You are the editor of a personal memory reel — a short, music-backed montage cut from one family's home footage, the kind of video someone keeps to relive a day. You do NOT watch the video; you read it as a timeline of descriptions. Decide the edit: which moments to keep, in what order, how long each runs, and where the music should step back for someone's voice. A human will review and may adjust your cut, so give a short reason for each choice.
+
+INPUT</pre>
+      <div class="step">② HEADER — 每次运行动态拼接（prompt.py:85-96）<span style="color:var(--gray-500);font-weight:400">　<span class="ph" style="background:rgba(217,119,87,.18);color:var(--clay-d)">高亮</span> = 运行时变量</span></div>
+      <pre class="code">- Feeling: <span class="ph">{feeling}</span>  (pace: upbeat = quick cuts, calm/nostalgic = longer holds, sad = lingering)
+- Music: chosen AFTER your edit to match the energy arc you describe. Cut to the shot lengths the feeling implies; cuts are aligned to the music's beats afterward.
+- Target length: about <span class="ph">{budget_s}</span>s — be selective; leave out weak material to stay near it.
+- Sensitive people (do NOT feature): <span class="ph">{sensitive}</span>
+- Footage table, chronological. Timestamps are in each clip's OWN seconds. Each clip's rows over time are: 'visual' (what is seen), 'speech' (what is said), and 'on screen' (text read off signs/captions — a clue to place or event, useful for the arc):
+
+<span class="ph">{footage_table}</span></pre>
+      <div class="step">③ RULES + PROCESS + 输出 schema（prompt.py:25-72）<span style="color:var(--gray-500);font-weight:400">　绿底 = 与美学标签 / best 瞬间相关的最近改动</span></div>
+      <pre class="code">HOW TO EDIT (in priority order)
+1. Human-led. If a clip carries a human note marking importance or a highlighted span, honour
+   it above your own judgement — keep it, and keep what they pointed at.
+<span class="hot">2. Curate by emotion, not by counting. Keep what is worth remembering — warmth, humour, a
+   milestone, a striking sight, something said that matters. Drop filler: logistics, "are you
+   filming me", ambient noise, repetitive nothing. Judge this by emotion and memory value, NOT by
+   image quality — a treasured moment that is a little soft still belongs; a sharp shot of nothing
+   does not. (Quality tags inform the in-point only; see rule 8.)</span>
+3. Two dimensions count equally. A moment earns its place by what is SAID (a real exchange) OR
+   what is SEEN (a child's first try, a view, a shared activity). Do not keep only talking clips.
+4. Keep a worthy conversation WHOLE. If an exchange is worth remembering, keep it complete —
+   never cut a person off mid-sentence, and never reduce a conversation to a single line. There
+   is no "best line"; keep the moment.
+5. Music is the bed. The reel is set to music; keep it in front by default. Only ask to duck it
+   (duck_music=true) during a conversation or sound you are deliberately featuring. Do not duck
+   the whole reel.
+6. Pace by feeling. A visual moment is a short shot at about the feeling's shot length and
+   should fall on a beat. A kept conversation is a long hold — let it play; off the beat is fine.
+7. Keep chronological order so the day can be relived in sequence. Within that, prefer a smooth
+   visual flow (don't jam two jarringly different shots back to back) when the order has slack.
+<span class="hot">8. Open a visual shot on its active / meaningful instant, not always the clip's start. Some clips
+   show a quality hint: a header "best ~Xs" (the sharpest, best-composed instant) and per-row tags
+   "[清晰·构图好]" (a strong frame) or "[弱/过渡]" (soft / transitional / filler). Prefer opening a
+   shot at or near its best moment, and prefer a "[清晰·构图好]" frame over a "[弱/过渡]" one.</span>
+9. Vary the rhythm — mix long holds with quick beats; don't make every shot the same.
+10. Fit the length budget by LEAVING THINGS OUT, never by trimming a worthy moment short.
+11. Photos are stills (marked [photo …], no sound). Use a good one like a held beat: set in_s=0
+    and out_s to a 2-5s hold, kind="photo", and choose motion — "in" (slow push), "out" (slow
+    pull) to give it life, or "static". Place it in chronological order with the videos.
+
+PROCESS — two steps, in this order:
+A. Think in prose first: what is this footage about, which moments matter and why, the
+   emotional arc, what to drop.
+B. THEN output the structured edit as a single JSON object, after your reasoning:
+{
+  "feeling": "&lt;the mood you are cutting to&gt;",
+  "arc": "&lt;one or two sentences: the through-line of this reel&gt;",
+  "segments": [
+    {"clip_id": "&lt;id from the table&gt;", "in_s": 0.0, "out_s": 0.0,
+     "kind": "moment | conversation | photo", "motion": "static | in | out (photos only)",
+     "duck_music": false, "reason": "&lt;one line&gt;"}
+  ]
+}
+clip_id must be EXACTLY the id shown in [clip &lt;id&gt;] (copy it verbatim, do not shorten it);
+in_s/out_s are seconds within that clip, between 0 and its stated len; segments are in final
+reel order.</pre>
+    </div>
+    <div class="panel">
+      <p class="anno">导演读到的不是视频，而是这样一张文字表（由 <b>director/table.py</b> 渲染）。每个片段一块：表头（id / 出镜人 / 时长 / 备注 / <code class="inline-code">best ~Xs</code>），其下 <b>visual / speech / text(on screen)</b> 三类行<b>按时间交错</b>。同一时刻顺序固定：speech → visual → text。</p>
+      <pre class="code">[clip <span class="k2">DJI_0022</span>]  who: 男孩-短发   len: 20s   note: 烤芋头, 重要   <span class="ph">best ~3.2s</span>
+  speech  t=1.3-2.1s  这是芋头吗
+  visual  t=0.0s  围着炭炉烤食物  <span class="ph">[弱/过渡]</span>
+  text    t=0.0s  on screen: 武夷山风景区
+  visual  t=3.2s  孩子拿起烤好的芋头特写  <span class="ph">[清晰·构图好]</span>
+  speech  t=3.5-5.0s  哇 好香
+
+[photo <span class="k2">IMG_3310</span>]  who: —   (still photo — pick a 2-5s hold via out_s, and motion: static/in/out)
+  visual  t=0.0s  一家人在溪边合影</pre>
+      <p class="anno" style="margin-top:16px"><b>各字段含义</b>（点术语看右侧解释）：</p>
+      <div class="kv" style="margin-top:6px">
+        <div class="row"><div class="k">best ~Xs</div><div class="v"><span class="term" data-k="best_t">最佳瞬间</span>：该片美学得分最高的时刻，提示导演把<span class="term" data-k="in_point">入点</span>开在这里，不是叫它据此删片。</div></div>
+        <div class="row"><div class="k">visual</div><div class="v">VLM 描述的画面；行尾带 <span class="qt sharp">[清晰·构图好]</span> 或 <span class="qt weak">[弱/过渡]</span> <span class="term" data-k="quality_tag">质量标签</span>。</div></div>
+        <div class="row"><div class="k">speech</div><div class="v"><span class="term" data-k="Whisper">Whisper</span> 转写的台词，带起止时间。</div></div>
+        <div class="row"><div class="k">text</div><div class="v">画面里的 <span class="term" data-k="OCR">屏上文字</span>（路牌/字幕），渲染成 <code>on screen: …</code>。</div></div>
+        <div class="row"><div class="k">photo</div><div class="v"><span class="term" data-k="kind">照片</span>是静帧无声，提示设 <code>in_s=0</code>、用 <code>out_s</code> 定 2-5s 停留并选 <span class="term" data-k="motion">运动</span>。</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="step">输入：footage table + 元数据</div>
+      <p class="anno">prompt = PREAMBLE + HEADER + RULES。动态部分由 <span class="term" data-k="build_director_montage">build_director_montage</span> 组装：从 store 取 <code>get_clip_moments_rich</code>（含 OCR）、<span class="term" data-k="clip_aesthetics">clip_aesthetics</span>（算 <span class="term" data-k="quality_tag">质量标签</span>）、<code>get_transcript</code>，再加 <span class="term" data-k="feeling">feeling</span>、配乐 track / tempo、预算 budget_s、敏感人物。</p>
+      <div class="step">LLM 调用：claude_text（analyze/backends/claude_cli.py）</div>
+      <pre class="code"><span class="cm"># 纯文本进，JSON-in-prose 出；无 tool use / 无 structured output</span>
+subprocess.run([
+    "claude", "-p", prompt,
+    "--output-format", "json",
+    "--model", "claude-opus-4-6",
+], ...)   <span class="cm"># claude CLI（订阅）优先；无 CLI 时自动改走 ANTHROPIC_API_KEY 直连 API</span>
+<span class="cm"># 超时 DIRECTOR_TIMEOUT_S = 1800s（大批量素材可能跑几分钟）</span></pre>
+      <div class="step">输出：JSON → IntentionList → MontagePlan[]</div>
+      <pre class="code"><span class="cm"># LLM 返回（先 prose 推理，后单个 JSON 对象）</span>
+{ "feeling": "...", "arc": "...",
+  "segments": [ {"clip_id","in_s","out_s","kind","motion","duck_music","reason"}, ... ] }</pre>
+      <p class="anno" style="margin-top:14px">随后这条加工链（全部 pure，在 <b>director/plan.py</b> + <b>montage.py</b>，点蓝字看解释）：</p>
+      <div style="background:var(--paper);border:1px solid var(--gray-200);border-radius:10px;padding:14px 18px;margin-top:8px">
+        <div class="flow-chain">
+          <span class="term" data-k="parse_edit" style="color:var(--slate);font-weight:700">parse_edit</span> <span class="arr">→</span> 容错抽 JSON（丢弃缺 clip_id 或 out≤in 的段）<br>
+          <span class="arr">→</span> <span class="term" data-k="resolve_segments" style="color:var(--slate);font-weight:700">resolve_segments</span> 把缩写 clip_id 还原成真实路径<br>
+          <span class="arr">→</span> 按真实时长<b>钳制</b> out_s（导演只看了表，越界会崩渲染）<br>
+          <span class="arr">→</span> <span class="term" data-k="edit_to_intention" style="color:var(--slate);font-weight:700">edit_to_intention</span> 转 IntentionList；<code class="inline-code">duck_music=true</code> 段 <span class="arr">→</span> 一个 <span class="term" data-k="AudioHighlight">AudioHighlight</span><br>
+          <span class="arr">→</span> <span class="term" data-k="split_edit_by_day" style="color:var(--slate);font-weight:700">split_edit_by_day</span> 按天 + 预算拆段<br>
+          <span class="arr">→</span> 每段打包成 <span class="term" data-k="MontagePlan" style="color:var(--slate);font-weight:700">MontagePlan</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 配乐选择：导演 × 打分器 ============ -->
+<section>
+  <div class="sec-head"><p class="eyebrow">director × music</p><h2>配乐怎么被选中：导演给意图，打分器选曲</h2>
+    <p style="margin:8px 0 0;font-size:14px;color:var(--gray-700)">出货管线里选曲<b>没有 LLM</b>。导演只说「要什么<b>感觉</b>」（一个 <span class="term" data-k="MusicIntent">MusicIntent</span>），具体<b>哪一首</b>由确定性打分器 <span class="term" data-k="rank_tracks">rank_tracks</span> 定。这是刻意的切分：LLM 负责判断，数值负责匹配，呼应全线「决策与原始数据分离」。</p>
+  </div>
+
+  <div class="card">
+    <div class="struct-lab">选曲流程 · 导演出意图 → 打分选曲 → 卡拍 → 记账（虚线/方块可点开看解释）</div>
+    <svg class="minisvg" viewBox="0 0 1000 100" role="img" aria-label="配乐选择流程：导演出 MusicIntent，rank_tracks 打分选中曲子，beat_snap 卡拍，写 rationale sidecar">
+      <text class="cap" data-k="energy_curve" x="200" y="14" text-anchor="middle" style="cursor:pointer;fill:var(--clay-d)">↓ 共同坐标：energy_curve（16 点能量弧）</text>
+      <line x1="194" y1="59" x2="212" y2="59" stroke="#141413" stroke-width="1.5" marker-end="url(#ah-slate)"/>
+      <line x1="394" y1="59" x2="412" y2="59" stroke="#141413" stroke-width="1.5" marker-end="url(#ah-slate)"/>
+      <line x1="560" y1="59" x2="578" y2="59" stroke="#141413" stroke-width="1.5" marker-end="url(#ah-slate)"/>
+      <line x1="752" y1="59" x2="770" y2="59" stroke="#141413" stroke-width="1.5" marker-end="url(#ah-slate)"/>
+      <g class="b click" data-k="MusicIntent"><rect class="b click" x="8" y="30" width="186" height="58" rx="9"/>
+        <text class="lbl" x="101" y="55" text-anchor="middle" font-size="14">导演</text>
+        <text class="sub" x="101" y="73" text-anchor="middle" font-size="10.5">→ MusicIntent</text></g>
+      <g class="b click" data-k="rank_tracks"><rect class="b click" x="212" y="30" width="182" height="58" rx="9"/>
+        <text class="lbl" x="303" y="55" text-anchor="middle" font-size="14">rank_tracks</text>
+        <text class="sub" x="303" y="73" text-anchor="middle" font-size="10.5">确定性打分 · 无 LLM</text></g>
+      <g class="b click" data-k="TrackFeatures"><rect class="b click dark" x="412" y="30" width="148" height="58" rx="9"/>
+        <text class="dlbl" x="486" y="55" text-anchor="middle" font-size="13">选中 track</text>
+        <text class="dlbl" x="486" y="73" text-anchor="middle" font-size="10" opacity=".75">= 打分第一名</text></g>
+      <g class="b click" data-k="beat_snap_segments"><rect class="b click" x="578" y="30" width="174" height="58" rx="9"/>
+        <text class="lbl" x="665" y="55" text-anchor="middle" font-size="14">卡拍</text>
+        <text class="sub" x="665" y="73" text-anchor="middle" font-size="10.5">beat_snap_segments</text></g>
+      <g class="b click" data-k="rationale_sidecar"><rect class="b click dark" x="770" y="30" width="222" height="58" rx="9"/>
+        <text class="dlbl" x="881" y="55" text-anchor="middle" font-size="12.5">*.music-rationale.json</text>
+        <text class="dlbl" x="881" y="73" text-anchor="middle" font-size="10" opacity=".75">选曲记账</text></g>
+    </svg>
+
+    <div class="kv">
+      <div class="row"><div class="k">① 导演意图</div><div class="v">导演读素材表后，除了剪辑还输出一个 <span class="term" data-k="MusicIntent">MusicIntent</span>：16 点 <span class="term" data-k="energy_curve">energy_curve</span> + tempo 区间 + mode_pref + valence + 目标时长。它说清楚「要什么感觉」，<b>不点名任何一首文件</b>。（导演 prompt 里那行现在写的是 <code class="inline-code">Music: chosen AFTER your edit…</code>）</div></div>
+      <div class="row"><div class="k">② 打分</div><div class="v">库里每首曲子有离线算好的 <span class="term" data-k="TrackFeatures">TrackFeatures</span>。<span class="term" data-k="rank_tracks">rank_tracks</span> 逐项打分（shape/tempo/valence/mode/duration），按 <span class="term" data-k="DEFAULT_WEIGHTS">DEFAULT_WEIGHTS</span> 加权，再乘 <span class="term" data-k="shape_gate">shape_gate</span> 软门槛。纯数值、可复现、无 LLM。</div></div>
+      <div class="row"><div class="k">③ 选中</div><div class="v">取总分<b>第一名</b>为选中曲子；若第一名 <code class="inline-code">&lt; 0.6</code> → <span class="term" data-k="library_gap">library_gap</span>，挑「最不差」的兜底并标记该补曲。</div></div>
+      <div class="row"><div class="k">④ 卡拍</div><div class="v"><span class="term" data-k="beat_snap_segments">beat_snap_segments</span> 用<b>选中曲子</b>的真实拍点把每个切点吸到最近拍（改 <span class="term" data-k="out_s">out_sec</span>）。换一首歌重跑，就是换选中曲子后按<b>它自己</b>的拍点重卡。</div></div>
+      <div class="row"><div class="k">⑤ 记账</div><div class="v">成片旁写 <span class="term" data-k="rationale_sidecar">*.music-rationale.json</span>：选中曲子 + 五轴 breakdown + 拍点吸附 + library_gap，方便复核「为什么配这首」。</div></div>
+      <div class="row"><div class="k">文件</div><div class="v"><span class="files">director/prompt.py（导演出 MusicIntent） · music/score.py（rank_tracks + 权重） · music/features.py（算特征） · music/beatsnap.py（卡拍） · music/library.py（读特征库）　CLI: <code class="inline-code">composerv music index</code></span></div></div>
+    </div>
+
+    <div class="note-flow" style="background:#FFF6F1;border:1px solid rgba(217,119,87,.3)"><b style="color:var(--clay-d)">一句话</b>：导演给「想要什么」，打分器给「用哪首」。另有一套<span class="term" data-k="music_collab">设计时三方协商</span>（配乐/导演/评估）只用来调提示词和权重，<b>绝不进出货管线</b>。</div>
+  </div>
+</section>
+
+<!-- ============ 数据契约 ============ -->
+<section>
+  <div class="sec-head"><p class="eyebrow">data contracts</p><h2>贯穿全线的数据契约</h2>
+    <p style="margin:8px 0 0;font-size:14px;color:var(--gray-700)">模块之间真正传递的对象。所有时间码都是<b>源媒体秒（float）</b>，只有导出 FCPXML 时才换算成整数帧。</p>
+  </div>
+  <details open>
+    <summary>时间线契约：剪辑决策怎么表示<span class="meta">composerv/models.py</span></summary>
+    <div class="body">
+      <p class="anno" style="margin:0 0 10px"><span class="term" data-k="IntentionList">IntentionList</span> 是预览引擎和 FCPXML 导出器共用的唯一契约。</p>
+      <pre class="code">class <span class="k2">Segment</span>(BaseModel):
+    <span class="cm">"""IntentionList 的一项。clip=引用源片；gap=故意的空洞；photo=静帧停留。"""</span>
+    kind: str = "clip"              <span class="cm"># clip | gap | photo</span>
+    source_id: str | None = None    <span class="cm"># 源片 id；gap 为 None</span>
+    in_sec: float | None = None
+    out_sec: float | None = None
+    duration_s: float
+    motion: str = ""                <span class="cm"># 照片: static | in | out（渲染做 Ken Burns）</span>
+    label: str = ""                 <span class="cm"># beat 功能 / 标记名</span>
+    note: str = ""                  <span class="cm"># 理由 / 出处，落成 marker 备注</span>
+    transition_in: str = "hard_cut"
+    enabled: bool = True            <span class="cm"># 关掉=留在文档但不进编译输出</span>
+
+class <span class="k2">IntentionList</span>(BaseModel):
+    story_id: str
+    timeline_fps: int = 30
+    segments: list[Segment] = []
+    music: MusicBed | None = None
+
+class <span class="k2">MusicBed</span>(BaseModel):
+    <span class="cm">"""铺在整条时间线下的配乐 + ducking 规则。"""</span>
+    path: str
+    gain_db: float = 0.0            <span class="cm"># 窗口外音乐音量</span>
+    duck_db: float = -15.0          <span class="cm"># 窗口外片段原声音量</span>
+    fade_out_s: float = 1.5
+    highlights: list[AudioHighlight] = []
+    music_duck_db: float = -12.0    <span class="cm"># 窗口内压低音乐的量</span>
+    highlight_db: float = 0.0       <span class="cm"># 窗口内抬起的原声</span>
+
+class <span class="k2">AudioHighlight</span>(BaseModel):
+    <span class="cm">"""现场声被抬到前面、音乐让位的窗口。时间是时间线秒。"""</span>
+    start_s: float
+    end_s: float
+    ramp_s: float = 0.40            <span class="cm"># 两端淡入淡出</span>
+    music_duck_db: float | None = None
+    clip_db: float | None = None
+    label: str = ""</pre>
+    </div>
+  </details>
+  <details>
+    <summary>感知契约：分析阶段缓存了什么<span class="meta">analyze/clip_video.py · store/db.py</span></summary>
+    <div class="body">
+      <pre class="code">class <span class="k2">ClipMoment</span>(BaseModel):           <span class="cm"># analyze/clip_video.py</span>
+    t: float          <span class="cm"># 真实采样到的时间戳（片内秒）</span>
+    text: str         <span class="cm"># 那一刻发生了什么</span>
+    ocr: str = ""     <span class="cm"># 那一刻屏上可读文字（路牌/字幕/地名）</span>
+    objects: list[GroundedObject] = []   <span class="cm"># 物体框（给 reframe 用，导演忽略）</span>
+
+class <span class="k2">GroundedObject</span>(BaseModel):
+    label: str                 <span class="cm"># "person" / "dog" / "sign" ...</span>
+    box: list[float]           <span class="cm"># [x1,y1,x2,y2]，归一化到 [0,1]</span>
+
+class <span class="k2">ClipAesthetics</span>(BaseModel):         <span class="cm"># store/db.py</span>
+    best_t: float | None = None
+    curve: list[tuple[float, float, bool]] = []   <span class="cm"># (t秒, 总分, 是否utility)</span></pre>
+    </div>
+  </details>
+  <details>
+    <summary>导演产物：交给渲染的最终对象<span class="meta">music/montage.py</span></summary>
+    <div class="body">
+      <pre class="code">class <span class="k2">MontagePlan</span>(BaseModel):
+    feeling: str = ""
+    track: str | None = None        <span class="cm"># 建议配乐文件</span>
+    tempo: float = 0.0
+    label: str = ""                 <span class="cm"># 这段是哪一天/第几部分，用于命名</span>
+    intention: IntentionList        <span class="cm"># ← 真正喂给渲染层的剪辑决策表</span></pre>
+    </div>
+  </details>
+  <details>
+    <summary>用户输入契约 <span class="st done" style="margin-left:6px">已实现</span><span class="meta">store/db.py · Brief</span></summary>
+    <div class="body">
+      <p class="anno" style="margin:0 0 10px">人名确认与用户补充统一成「<span class="term" data-k="user_brief">用户输入</span>」，注入导演 prompt 的最高优先级段（HUMAN BRIEF）。</p>
+      <pre class="code">class <span class="k2">Brief</span>(BaseModel):            <span class="cm"># store/db.py — 已实现</span>
+    scope: str                      <span class="cm"># 属于哪个剪辑范围（如一个拍摄日）</span>
+    context: str = ""               <span class="cm"># 视频额外上下文（自由文本）</span>
+    style: str = ""                 <span class="cm"># 风格 / 节奏需求</span>
+    updated_at: str = ""
+<span class="cm"># persons.note 人物备注随 who 进素材表；briefs 按 scope 存取（set_brief/get_brief）
+# 链路：composerv confirm（表单）→ store → montage --scope 读 brief → HUMAN BRIEF 段</span></pre>
+    </div>
+  </details>
+</section>
+
+<footer>composerV · MIT License · 模型许可见 THIRD_PARTY_NOTICES.md（insightface 人脸模型仅限非商业研究）· prompt 与数据契约逐字摘自 director/prompt.py · table.py · analyze/aesthetics.py · models.py 等</footer>
+
+</main>
+
+<!-- ============ 右侧解释边栏 ============ -->
+<aside class="aside">
+  <div class="aside-card">
+    <div class="aside-head"><b>解释边栏</b><span class="hint">点左侧虚线术语 / 方块</span></div>
+    <div class="explain" id="explain"></div>
+  </div>
+</aside>
+
+</div><!-- /layout -->
+</div><!-- /wrap -->
+
+<script>
+/* ---------- 术语词典 ---------- */
+var GLOSSARY = {
+  proxy:{t:"proxy 代理片",c:"concept",d:"统一的 H.264 代理片。原片可能各种编码、可变帧率，难以快速逐帧读取；摄取时转成一份恒定帧率的 .mp4 放进 <code>~/.composerv/</code>，后续分析、预览都读它，原片只在最后进 Final Cut 收尾时用。",r:["CFR","assets"]},
+  CFR:{t:"CFR 恒定帧率",c:"concept",d:"Constant Frame Rate：每秒帧数固定，时间码和帧一一对应，逐帧定位准确。手机/相机常见的 VFR（可变帧率）直接精剪容易错位，所以先转成 CFR proxy。",r:["proxy"]},
+  footage_table:{t:"footage table",c:"concept",d:"导演唯一读到的输入：一张纯文字的素材时间线。每个片段一块，表头是 id/出镜人/时长/备注/最佳瞬间，下面把 visual、speech、on-screen 三类行按时间交错列出。导演不看画面，只读这张表做剪辑。",r:["build_footage_table","ClipMoment","transcript","best_t"]},
+  in_point:{t:"入点 in-point",c:"concept",d:"一个片段在成片里从源片的第几秒开始播。导演用 <code>best ~Xs</code> 的提示把入点开在最清晰、最有意义的瞬间，而不一定从片头。对应 JSON 里的 <code>in_s</code>。",r:["best_t","in_s","out_s"]},
+  best_t:{t:"best_t 最佳瞬间",c:"concept",d:"一个片段里美学得分最高的时间点（秒），排除头尾各 0.3 秒（开头结尾常有抖动/黑场）。在 footage table 表头显示成 <code>best ~Xs</code>，提示导演把入点开在这里。<b>只影响入点，不决定是否保留该片段。</b>",r:["in_point","aesthetics","clip_aesthetics"]},
+  quality_tag:{t:"质量标签",c:"concept",d:"把美学原始分蒸馏成导演看得懂的短标记：<b>[清晰·构图好]</b>=好帧；<b>[弱/过渡]</b>=模糊/过渡/废帧；中间区间不打标签。导演用它选在哪一帧开镜，不用它删片。",r:["distill_quality","aesthetics","quality_tag_at"]},
+  ducking:{t:"ducking 压低配乐",c:"concept",d:"成片默认音乐在前、片段原声被压低（约 -15 dB）。当某段对话或现场声值得突出，导演标 <code>duck_music=true</code>，那一段音乐短暂下沉、原声抬起，两端有淡入淡出。",r:["duck_music","MusicBed","AudioHighlight"]},
+  feeling:{t:"feeling 情绪",c:"concept",d:"整条片子的基调（calm / upbeat / nostalgic / sad…）。它决定节奏：upbeat 快切、calm 与 nostalgic 长镜、sad 缓慢。由 <code>infer_feeling</code> 从摘要推断，也可手填。",r:["infer_feeling","clip_summaries"]},
+  VLM:{t:"VLM 视觉语言模型",c:"concept",d:"Vision-Language Model。给它一串带时间戳的帧，它描述每个时刻发生了什么、读出屏上文字、框出物体。本地用 Qwen3-VL（MLX），也可走 Claude。产出写进 clip_moments。",r:["sub_vlm","clip_moments","OCR","grounded_objects"]},
+  OCR:{t:"OCR 屏上文字",c:"concept",d:"把画面里出现的路牌、字幕、招牌等文字读出来。在表里渲染成 <code>on screen: …</code>，是判断地点和事件的线索。",r:["ClipMoment","clip_moments"]},
+  grounded_objects:{t:"grounded objects 物体框",c:"concept",d:"VLM 框出的主体（person/dog/sign…），每个带归一化坐标 <code>[x1,y1,x2,y2]</code>。导演的文字表忽略它，它是给 reframe（自动裁切/构图）用的。",r:["GroundedObject","ClipMoment"]},
+  Whisper:{t:"Whisper 语音转写",c:"concept",d:"语音转写模型。这里用 MLX-Whisper（Apple Silicon 本地跑），把人声转成带起止时间的句子，写进 transcript。",r:["transcript","sub_whisper"]},
+  aesthetics:{t:"aesthetics 美学打分",c:"concept",d:"用 Apple Vision（一个本地 Swift 小程序）给抽出的帧逐帧打分，约 -1（差）到 +1（好），并标出 utility 帧。用来挑最佳瞬间和质量标签。",r:["score_frames","analyze_aesthetics","best_t","quality_tag","utility_frame","sub_aesthetics"]},
+  utility_frame:{t:"utility 帧",c:"concept",d:"Apple Vision 判定为「功能性/无审美价值」的帧（纯文档、纯色、过渡）。一律打成 [弱/过渡]。",r:["aesthetics","quality_tag"]},
+
+  sub_vlm:{t:"视觉支路 · VLM",c:"sub",d:"分析模块「看」这一路：VLM 逐时刻看画面，产出 caption（描述）+ OCR（屏上文字）+ grounded objects（物体框），写进 clip_moments。",r:["VLM","clip_moments","OCR","grounded_objects"]},
+  sub_whisper:{t:"听觉支路 · Whisper",c:"sub",d:"分析模块「听」这一路：MLX-Whisper 转写人声成带时间的句子，写进 transcript。",r:["Whisper","transcript"]},
+  sub_aesthetics:{t:"美学支路 · Vision",c:"sub",d:"分析模块「审美」这一路：Apple Vision 给帧打分，算出 best_t + 质量标签，写进 clip_aesthetics。只影响入点。",r:["aesthetics","clip_aesthetics","best_t","quality_tag"]},
+  sub_confirm_faces:{t:"人像确认",c:"sub",d:"感知跑完后，把检测到的人脸/人物簇拿给用户确认「这是谁」，可对照已有人物库；用户给名字或选择跳过，名字写回本地 persons 库长期保存。实现基础是已有的人脸检测/命名 CLI（faces / name / merge）。",r:["persons","faces","user_brief"]},
+  sub_user_meta:{t:"用户输入 meta",c:"sub",d:"让用户补充视频的额外上下文、风格/节奏需求等自由文本；感知层整理后统一标签为「用户输入」。",r:["user_brief"]},
+  user_brief:{t:"用户输入 brief",c:"model",d:"把确认的人名 + 用户补充的上下文/风格需求，统一打包标签为「用户输入」，作为<b>最高优先级</b>的人类指引注入导演 prompt（呼应 rule 1 Human-led）。",r:["sub_confirm_faces","sub_user_meta","persons"]},
+  persons:{t:"persons 人物库",c:"table",d:"本地人物库：person_id + 姓名 + 人脸 centroid（聚类中心）。人像确认时对照它来认人；用户给的新名字写回这里，持久保存在本地数据库。",r:["faces","sub_confirm_faces"]},
+  faces:{t:"faces 人脸",c:"table",d:"人脸检测结果：InsightFace 检出的人脸（embedding + 框 + 时间点），聚类成簇。人像确认就是把这些簇对应到具体人名。",r:["persons","sub_confirm_faces"]},
+
+  assets:{t:"assets 表",c:"table",d:"资产表（主键=路径）：每个媒体文件的编解码、帧率、宽高、时长、拍摄时间、proxy 路径等。摄取阶段写入，几乎每个后续步骤都查它拿元数据。",r:["proxy"]},
+  clarity:{t:"clarity 表",c:"table",d:"片段在「看清+筛选」层的状态：一句话摘要、摘要来源（local/claude）、是否被选进工作集。",r:["clip_summaries"]},
+  clip_summaries:{t:"clip_summaries 表",c:"table",d:"每片一句话摘要，连接到故事层；导演推断 feeling 时读它。",r:["clarity","feeling"]},
+  keyframes:{t:"keyframes 表",c:"table",d:"每片抽的代表性关键帧缩略图（时间点 + 缩略图路径），用于目录页和分镜展示。",r:["assets"]},
+  clip_moments:{t:"clip_moments 表",c:"table",d:"视觉时刻表：分析阶段 VLM 产出的逐时刻记录（t, text, ocr, objects）。导演读它（带 OCR）拼进 footage table。",r:["ClipMoment","VLM","footage_table"]},
+  transcript:{t:"transcript 表",c:"table",d:"台词表：Whisper 转写的句子（start, end, text）。导演读它拼成 speech 行。",r:["Whisper","footage_table"]},
+  clip_aesthetics:{t:"clip_aesthetics 表",c:"table",d:"美学表（主键=路径）：每片的 best_t（最佳瞬间）+ curve（完整打分曲线）。导演读它算质量标签和最佳瞬间。",r:["ClipAesthetics","best_t","aesthetics"]},
+
+  Segment:{t:"Segment",c:"model",d:"IntentionList 里的一项剪辑：kind（clip/gap/photo）、源片 id、in/out 秒、时长、备注、转场。<code>enabled=false</code> 表示留在文档但不进输出。",r:["IntentionList","kind"]},
+  IntentionList:{t:"IntentionList",c:"model",d:"剪辑决策表：预览引擎和 FCPXML 导出器共用的唯一契约。有序的 segments + 可选 MusicBed。Story 会编译成它，但它不会反向编译。",r:["Segment","MusicBed","MontagePlan"]},
+  MusicBed:{t:"MusicBed",c:"model",d:"配乐床：铺在整条时间线下的音乐 + ducking 规则。两档音乐音量、两档原声音量实现动态压低。",r:["ducking","AudioHighlight"]},
+  AudioHighlight:{t:"AudioHighlight",c:"model",d:"高亮窗口：某段现场声被抬到前面、音乐让位的时间区间，带两端淡入淡出。<code>duck_music=true</code> 的段会投影成一个 AudioHighlight。",r:["ducking","duck_music","MusicBed"]},
+  ClipMoment:{t:"ClipMoment",c:"model",d:"一个视觉时刻：t（片内秒）、text（发生了什么）、ocr（屏上文字）、objects（物体框）。clip_moments 表的行模型。",r:["clip_moments","OCR","grounded_objects"]},
+  GroundedObject:{t:"GroundedObject",c:"model",d:"一个被框出的物体：label + 归一化坐标 box <code>[x1,y1,x2,y2]</code>。",r:["grounded_objects","ClipMoment"]},
+  ClipAesthetics:{t:"ClipAesthetics",c:"model",d:"一片的美学结果：best_t + curve（<code>[(t,分数,是否utility)]</code> 列表）。clip_aesthetics 表的模型。",r:["clip_aesthetics","best_t"]},
+  MontagePlan:{t:"MontagePlan",c:"model",d:"导演的最终产物（每天/每段一个）：feeling、track、tempo、label（命名用）、intention（真正喂给渲染的 IntentionList）。",r:["IntentionList","feeling"]},
+
+  clip_id:{t:"clip_id 字段",c:"field",d:"片段 id：导演必须从表里 <code>[clip &lt;id&gt;]</code> 原样照抄。LLM 爱把长路径缩成 stem，resolve_segments 再还原成真实路径。",r:["resolve_segments"]},
+  in_s:{t:"in_s 字段",c:"field",d:"入点秒：片段在源片里从第几秒开始，0 到片长之间。",r:["in_point","out_s"]},
+  out_s:{t:"out_s 字段",c:"field",d:"出点秒：片段在源片里到第几秒结束，必须大于 in_s。导演只看了表没看真片，事后会按真实时长钳制。",r:["in_s","in_point"]},
+  kind:{t:"kind 字段",c:"field",d:"片段类型：moment（短镜头）/ conversation（完整对话，长镜）/ photo（静帧）。",r:["Segment","motion"]},
+  motion:{t:"motion 字段",c:"field",d:"照片运动：static / in（缓推）/ out（缓拉），给静帧加 Ken Burns 效果。",r:["kind"]},
+  duck_music:{t:"duck_music 字段",c:"field",d:"是否压低配乐：true 时这一段突出原声（对话/现场声），音乐短暂下沉。",r:["ducking","AudioHighlight"]},
+  reason:{t:"reason 字段",c:"field",d:"一句话理由：导演为每个保留决定写的依据，会落成时间线上的 marker 备注，方便人类复核。",r:[]},
+  arc:{t:"arc 字段",c:"field",d:"through-line：导演用一两句话概括这条片子的主线/情感弧。",r:["feeling"]},
+
+  build_director_montage:{t:"build_director_montage()",c:"fn",d:"导演阶段总编排：读 store → 拼表 → 调 LLM → 解析/还原/钳制 → 按天拆 → 返回 MontagePlan[]。",r:["footage_table","MontagePlan","parse_edit"]},
+  build_footage_table:{t:"build_footage_table()",c:"fn",d:"把每片的 visual/speech/text 行按时间交错，渲染成导演读的文字表。纯函数。",r:["footage_table"]},
+  build_director_prompt:{t:"build_director_prompt()",c:"fn",d:"把 footage table + feeling/配乐/预算/敏感人物拼成完整 prompt（PREAMBLE + HEADER + RULES）。纯函数。",r:["footage_table","feeling"]},
+  parse_edit:{t:"parse_edit()",c:"fn",d:"从 LLM 回复里容错抽出那个 JSON（前面可能有 prose）。丢弃缺 clip_id 或 out≤in 的段。",r:["clip_id","resolve_segments"]},
+  resolve_segments:{t:"resolve_segments()",c:"fn",d:"把导演写的（常被缩写的）clip_id 还原成真实源路径：先精确匹配，否则找唯一包含关系的 id；匹配不到或有歧义就丢弃。",r:["clip_id","parse_edit"]},
+  edit_to_intention:{t:"edit_to_intention()",c:"fn",d:"把解析后的 edit 转成 IntentionList：每段变 Segment；duck_music 的段投影成 AudioHighlight（相邻的合并）。",r:["IntentionList","AudioHighlight","duck_music"]},
+  split_edit_by_day:{t:"split_edit_by_day()",c:"fn",d:"按拍摄日 + max_part_s 预算把段切成多部分；一天超长记成 日期（1）（2）；过短的尾段并回同日前段。",r:["MontagePlan"]},
+  score_frames:{t:"score_frames()",c:"fn",d:"调本地 Swift CLI 给每帧打分，返回 <code>{路径:(分数,是否utility)}</code>（注意是 dict，不是 list）。二进制不在就静默返回空。",r:["aesthetics","analyze_aesthetics"]},
+  analyze_aesthetics:{t:"analyze_aesthetics()",c:"fn",d:"按 aes_fps 抽帧 → score_frames 打分 → 返回 <code>(best_t, curve)</code>。",r:["score_frames","best_t","aesthetics"]},
+  distill_quality:{t:"distill_quality()",c:"fn",d:"把 (分数,是否utility) 蒸馏成标签：≥0.4 且非 utility → [清晰·构图好]；utility 或 ≤-0.2 → [弱/过渡]；否则空。",r:["quality_tag","quality_tag_at"]},
+  quality_tag_at:{t:"quality_tag_at()",c:"fn",d:"查某个时刻 t 的质量标签：取曲线上最近的采样再 distill。",r:["distill_quality","quality_tag"]},
+  infer_feeling:{t:"infer_feeling()",c:"fn",d:"从片段摘要推断整体情绪（feeling），可注入 LLM。",r:["feeling","clip_summaries"]},
+
+  MusicIntent:{t:"MusicIntent",c:"model",d:"导演的<b>配乐意图</b>（不是具体曲子）：<code>energy_curve</code>（16 点能量弧）、<code>tempo_lo/hi</code>（想要的速度区间，0=不限）、<code>mode_pref</code>（大调/小调/any）、<code>valence</code>（明暗）、<code>target_duration_s</code>、<code>arc_text</code>。作为剪辑决策的一部分被导演一次输出，随后交给 rank_tracks 选曲。",r:["energy_curve","rank_tracks","TrackFeatures","MusicBed"]},
+  TrackFeatures:{t:"TrackFeatures",c:"model",d:"一首曲子的<b>离线音频特征</b>：<code>tempo_bpm</code>、<code>beat_times</code>、<code>mode</code>（大小调近似）、<code>energy_curve</code>（16 点）、<code>valence</code>、<code>duration_s</code>，以及 <code>source</code>/<code>license</code> 出处。由 <code>composerv music index</code> 离线算一次，缓存进同名 <code>*.features.json</code> sidecar。",r:["rank_tracks","energy_curve","music_index","MusicIntent"]},
+  rank_tracks:{t:"rank_tracks()",c:"fn",d:"<b>确定性、无 LLM 的选曲打分器</b>（music/score.py）。把 MusicIntent 和库里每首 TrackFeatures 逐项比：shape / tempo / valence / mode / duration 五个 0–1 分，按 DEFAULT_WEIGHTS 加权，再乘 shape_gate 软门槛，排序取第一名。<b>选曲这一步没有 LLM 参与</b>。",r:["MusicIntent","TrackFeatures","DEFAULT_WEIGHTS","shape_gate","beat_snap_segments","library_gap"]},
+  energy_curve:{t:"energy_curve（16 点能量弧）",c:"field",d:"选曲的<b>共同语言</b>：16 个 0–1 的数，描述从开头（点 0）到结尾的情绪/响度起伏。导演「想要的弧」和每首曲子「实际的响度弧」都投到这 16 点上，<code>shape 分 = 1 − 两条弧的平均绝对差</code>。这样看不见画面的选曲器和听不见声音的导演能在同一坐标上对齐。",r:["MusicIntent","TrackFeatures","shape_gate"]},
+  DEFAULT_WEIGHTS:{t:"DEFAULT_WEIGHTS 打分权重",c:"field",d:"rank_tracks 五轴权重：<code>shape 0.6 · tempo 0.15 · valence 0.12 · mode 0.08 · duration 0.05</code>。shape（能量弧形状）最重。这组值是 2026-06-26 的一次设计时调参协商里从 0.5 调到 0.6 的（其余四项按比例缩小、和仍为 1）。",r:["rank_tracks","shape_gate","energy_curve"]},
+  shape_gate:{t:"shape_gate 软门槛",c:"concept",d:"防止「其它四项满分抬高综合分、掩盖差的形状」：当 <code>shape &lt; 0.85（SHAPE_FLOOR）</code> 时，综合分乘以 <code>(shape/0.85)²</code> 陡降。一次真实调参 run 里第一名靠 tempo/mode/valence 全满掩盖了差 shape，加这个门槛后被正确压下去。",r:["rank_tracks","energy_curve","DEFAULT_WEIGHTS"]},
+  beat_snap_segments:{t:"beat_snap_segments()",c:"fn",d:"卡拍：用<b>选中曲子</b>的真实拍点，把每个切点的时间线末端吸到最近的拍上。改的是 <code>out_sec</code>（渲染按 out−in 算时长，只改 duration 会是空操作），并按吸附后的布局重建 ducking 窗口。",r:["rank_tracks","MusicIntent","out_s"]},
+  music_index:{t:"composerv music index",c:"fn",d:"离线命令：扫一个音乐目录，给每首曲子算 TrackFeatures（librosa 出 tempo/拍点/能量弧/调式/valence），写同名 <code>*.features.json</code> sidecar，按 mtime 缓存、重算保留 source/license。选曲前先跑它。",r:["TrackFeatures","rank_tracks"]},
+  rationale_sidecar:{t:"*.music-rationale.json 选曲记账",c:"concept",d:"成片旁写一份选曲理由：选中的曲子、总分、五轴 breakdown（含 shape_gate）、拍点吸附、以及 library_gap。让「为什么配这首」可复核、可审计。",r:["rank_tracks","library_gap"]},
+  library_gap:{t:"library_gap 曲库缺口",c:"concept",d:"当第一名总分 <code>&lt; 0.6（ACCEPT_THRESHOLD）</code>：库里没有够格的曲子。此时不崩，挑「最不差」的那首并把 library_gap 记为 true，提示该补曲。",r:["rank_tracks","rationale_sidecar"]},
+  music_collab:{t:"设计时三方协商（不出货）",c:"concept",d:"仅在<b>设计时</b>用来调提示词和权重的一套三 agent 协商（配乐 / 导演 / 评估，Protocol C 提议-反应-修订，collab.py）。评估角色调的正是出货的 rank_tracks，LLM 只写理由散文。<b>绝不被出货管线 import</b>。",r:["rank_tracks","MusicIntent"]}
+};
+
+var CATS=[["concept","概念"],["sub","子模块"],["table","store 表"],["model","数据结构"],["field","字段"],["fn","函数"]];
+var CATCOLOR={concept:["#E8EDDF","#788C5D"],sub:["rgba(217,119,87,.16)","#B85C3E"],table:["#F0EEE6","#3D3D3A"],model:["#E8EDDF","#788C5D"],field:["#F5F4EE","#87867F"],fn:["#FCEEED","#C5453A"]};
+function catName(c){for(var i=0;i<CATS.length;i++)if(CATS[i][0]===c)return CATS[i][1];return c;}
+
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+function termHtml(k){
+  var e=GLOSSARY[k]; if(!e) return "";
+  var col=CATCOLOR[e.c]||["#F5F4EE","#87867F"];
+  var h='<div class="ex-back" data-back="1">‹ 返回术语索引</div>';
+  h+='<span class="ex-cat" style="background:'+col[0]+';color:'+col[1]+'">'+catName(e.c)+'</span>';
+  h+='<div class="ex-term">'+esc(e.t)+'</div>';
+  h+='<p class="ex-def">'+e.d+'</p>';
+  var rel=(e.r||[]).filter(function(x){return GLOSSARY[x];});
+  if(rel.length){
+    h+='<div class="ex-rel"><div class="lab">相关</div>';
+    rel.forEach(function(x){h+='<span class="chip" data-k="'+x+'">'+esc(GLOSSARY[x].t)+'</span>';});
+    h+='</div>';
+  }
+  return h;
+}
+function indexHtml(){
+  var h='<p class="idx-intro">点左侧正文里的<b>虚线术语</b>，或下方任意词条，这里会给出解释。共 '+Object.keys(GLOSSARY).length+' 条。</p>';
+  CATS.forEach(function(c){
+    var keys=Object.keys(GLOSSARY).filter(function(k){return GLOSSARY[k].c===c[0];});
+    if(!keys.length)return;
+    h+='<div class="idx-group"><div class="gh">'+c[1]+'</div>';
+    keys.forEach(function(k){h+='<span class="chip" data-k="'+k+'">'+esc(GLOSSARY[k].t)+'</span>';});
+    h+='</div>';
+  });
+  return h;
+}
+var explain=document.getElementById("explain");
+function showIndex(){explain.innerHTML=indexHtml();explain.scrollTop=0;}
+function showTerm(k){
+  if(!GLOSSARY[k]){return;}
+  explain.innerHTML=termHtml(k);explain.scrollTop=0;
+  if(window.matchMedia("(max-width:980px)").matches){
+    document.querySelector(".aside").scrollIntoView({behavior:"smooth",block:"start"});
+  }
+}
+showIndex();
+
+/* ---------- 事件委托：术语 / 子方块 / 相关词 / 返回 ---------- */
+document.addEventListener("click",function(ev){
+  var back=ev.target.closest("[data-back]");
+  if(back){showIndex();return;}
+  var t=ev.target.closest("[data-k]");
+  if(t){showTerm(t.getAttribute("data-k"));return;}
+  var node=ev.target.closest("svg .node");
+  if(node){
+    var id=node.getAttribute("data-target"),el=document.getElementById(id);
+    if(el){
+      document.querySelectorAll(".card").forEach(function(c){c.classList.remove("active");});
+      el.classList.add("active");el.scrollIntoView({behavior:"smooth",block:"center"});
+      setTimeout(function(){el.classList.remove("active");},2400);
+    }
+  }
+});
+/* Prompt 三标签切换 */
+document.querySelectorAll(".tabbar button").forEach(function(btn){
+  btn.addEventListener("click",function(){
+    var tabs=btn.closest(".tabs");
+    tabs.querySelectorAll(".tabbar button").forEach(function(b){b.classList.remove("on");});
+    tabs.querySelectorAll(".panel").forEach(function(p){p.classList.remove("on");});
+    btn.classList.add("on");
+    tabs.querySelectorAll(".panel")[+btn.dataset.t].classList.add("on");
+  });
+});
+</script>
+</body>
+</html>
