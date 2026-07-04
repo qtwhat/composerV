@@ -18,11 +18,11 @@ conversion. Everything below the story layer exists to serve it.
 
 ## Architecture at a glance
 
-![composerV pipeline — ingest → analyze → confirm → director → render, all around one central SQLite store](docs/architecture.png)
+![composerV pipeline: ingest → analyze → confirm → director → render, all around one central SQLite store](docs/architecture.png)
 
 Five stages on one line, all revolving around a single SQLite **store**
-(`composerv.db`). The slow perception work — a VLM watching the frames, Whisper
-listening to the audio, on-device aesthetic scoring — **runs once and writes the
+(`composerv.db`). The slow perception work (a VLM watching the frames, Whisper
+listening to the audio, on-device aesthetic scoring) **runs once and writes the
 store**; the director only ever **reads that cache**, so making a cut and revising it
 both stay fast. The interactive version of this diagram (click a stage for its
 internals) is live at **[qtwhat.github.io/composerV](https://qtwhat.github.io/composerV/)**
@@ -44,7 +44,7 @@ the locked story compiles to FCPXML for Final Cut.
 - **`story/`** (the product): human authors the spine (controlling idea + target
   feeling); the AI proposes a structure and fills beats with candidate moments ranked by
   narrative importance (not "exciting-ness"); `compile(Story) → IntentionList`.
-- **`render/`** (output): one IntentionList, three targets — a live **AVComposition**
+- **`render/`** (output): one IntentionList, three targets: a live **AVComposition**
   preview (zero render), a hand-rolled **FCPXML 1.13** emitter for Final Cut, and a
   storyboard / optional flattened share copy.
 
@@ -82,7 +82,7 @@ uv run pytest           # run tests
 
 `composerv demo` generates a fully synthetic demo set (test-pattern clips with
 synthesized speech and an OCR-able sign, plus two beat-gridded music tracks with
-distinct energy arcs) — no downloads, no licenses, no personal media:
+distinct energy arcs), no downloads, no licenses, no personal media:
 
 ```sh
 uv run composerv demo ./composerv-demo
@@ -103,10 +103,10 @@ subscription; used automatically when installed) or an Anthropic API key
 | `CV_MUSIC_DIR` | `~/.composerv/music` | the `<feeling>/`-tagged music library |
 | `CV_AESTHETICS_BIN` | auto-built | path to the compiled Swift aesthetics scorer |
 | `CV_CLAUDE_BACKEND` | CLI when installed | set `api` to force the Anthropic API over the `claude` CLI |
-| `CV_CLAUDE_PROXY` | — | HTTP(S) proxy for `claude` CLI calls |
+| `CV_CLAUDE_PROXY` | none | HTTP(S) proxy for `claude` CLI calls |
 
 ## License
 
 MIT (see `LICENSE`). The ML models downloaded at runtime have their own
-licenses — notably the insightface face models are **non-commercial research
+licenses: notably the insightface face models are **non-commercial research
 only**; see `THIRD_PARTY_NOTICES.md` before any commercial use.
