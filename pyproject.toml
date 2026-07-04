@@ -41,6 +41,7 @@ composerv-preview = "composerv.render.preview.player:main"
 dev = [
     "lxml>=6.1.1",
     "pytest>=8.0",
+    "ruff>=0.9",
 ]
 
 [build-system]
@@ -52,3 +53,13 @@ packages = ["composerv"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+# E702 (semicolon one-liners) and E731 (small lambdas) are deliberate compact style
+# in this codebase; E501 long lines are tolerated. Keep the real-bug rules (F*, E9*).
+ignore = ["E501", "E702", "E731"]
