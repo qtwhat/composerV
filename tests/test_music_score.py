@@ -1,6 +1,5 @@
 from composerv.models import MusicIntent, TrackFeatures
-from composerv.music.score import (ACCEPT_THRESHOLD, DEFAULT_WEIGHTS, SHAPE_FLOOR,
-                                    library_gap, rank_tracks)
+from composerv.music.score import (ACCEPT_THRESHOLD, DEFAULT_WEIGHTS, library_gap, rank_tracks)
 
 
 def _tf(path, **kw):

@@ -12,7 +12,7 @@ import re
 import subprocess
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 PHOTO_EXTS = {".jpg", ".jpeg", ".heic", ".heif", ".png", ".tif", ".tiff", ".dng", ".raf", ".cr2", ".nef", ".arw"}
 # camera-generated low-res proxies we can reuse instead of transcoding: DJI .LRF, GoPro .LRV

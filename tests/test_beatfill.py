@@ -4,7 +4,6 @@ build a Story that compiles to an IntentionList. Pure prompt/parse + mapping tes
 
 from composerv.index.probe import MediaInfo
 from composerv.story.beatfill import (
-    BoundBeat,
     build_fill_prompt,
     fill_story,
     parse_beats,

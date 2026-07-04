@@ -2,7 +2,6 @@
 
 import types
 
-import pytest
 
 from composerv.analyze.backends import claude_api, claude_cli
 

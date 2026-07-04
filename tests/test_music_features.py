@@ -73,7 +73,7 @@ def test_estimate_valence_orders_major_above_minor():
 def test_energy_curve_raw_from_audio():
     from composerv.music.features import _energy_curve_raw
 
-    librosa = pytest.importorskip("librosa")
+    pytest.importorskip("librosa")
 
     # Create a synthetic mono audio with varying loudness: quiet then loud then quiet
     sr = 22050

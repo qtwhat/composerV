@@ -1,4 +1,4 @@
-from composerv.reframe.path import cover_window, clamp_center, smooth_centers, crop_path
+from composerv.reframe.path import cover_window, smooth_centers, crop_path
 
 def test_cover_window_portrait_full_width():
     assert cover_window(1080, 1920, 16 / 9) == (1080, 608)        # 1080*9/16=607.5->608

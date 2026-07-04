@@ -1,4 +1,4 @@
-from composerv.confirm.form import (BriefInput, PersonUpdate, parse_confirm_submission,
+from composerv.confirm.form import (BriefInput, parse_confirm_submission,
                                     render_confirm_form)
 from composerv.faces.review import PersonRow
 from composerv.store.db import Brief

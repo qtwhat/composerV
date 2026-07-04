@@ -5,9 +5,7 @@ modeled on real DJI output (HEVC 10-bit + an embedded mjpeg thumbnail + telemetr
 streams), without needing the file.
 """
 
-import os
 
-import pytest
 
 from composerv.index.probe import (
     MediaInfo,
