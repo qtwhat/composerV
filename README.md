@@ -106,6 +106,12 @@ subscription; used automatically when installed) or an Anthropic API key
 | `CV_CLAUDE_BACKEND` | CLI when installed | set `api` to force the Anthropic API over the `claude` CLI |
 | `CV_CLAUDE_PROXY` | none | HTTP(S) proxy for `claude` CLI calls |
 
+## Contributing
+
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup,
+tests, and the pull-request checklist, [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for
+community expectations, and [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
+
 ## License
 
 MIT (see `LICENSE`). The ML models downloaded at runtime have their own

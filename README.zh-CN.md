@@ -99,6 +99,11 @@ uv run composerv demo ./composerv-demo
 | `CV_CLAUDE_BACKEND` | 装了 CLI 就用 CLI | 设 `api` 强制用 Anthropic API 而非 `claude` CLI |
 | `CV_CLAUDE_PROXY` | 无 | `claude` CLI 调用走的 HTTP(S) 代理 |
 
+## 参与贡献
+
+欢迎提 issue 和 pull request。开发环境、测试、PR 清单见 [CONTRIBUTING.md](CONTRIBUTING.md)，
+社区约定见 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)，报告安全问题见 [SECURITY.md](SECURITY.md)。
+
 ## 许可证
 
 MIT（见 `LICENSE`）。运行时下载的 ML 模型有各自的许可证：特别是 insightface 人脸
