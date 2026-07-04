@@ -1,6 +1,6 @@
 [project]
 name = "composerv"
-version = "0.0.1"
+version = "0.1.0"
 description = "Local, story-first video editing assistant: turn a personal footage archive into a story, preview it live, hand off to Final Cut Pro."
 readme = "README.md"
 license = {text = "MIT"}
