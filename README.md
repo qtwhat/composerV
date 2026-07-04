@@ -2,6 +2,7 @@
 
 **English** · [中文](README.zh-CN.md)
 
+[![CI](https://github.com/qtwhat/composerV/actions/workflows/ci.yml/badge.svg)](https://github.com/qtwhat/composerV/actions/workflows/ci.yml)
 [![Live demo](https://img.shields.io/badge/▶_live_demo-qtwhat.github.io%2FcomposerV-D97757)](https://qtwhat.github.io/composerV/index.en.html)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB)
