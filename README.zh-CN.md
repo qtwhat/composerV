@@ -2,6 +2,13 @@
 
 [English](README.md) · **中文**
 
+[![在线 demo](https://img.shields.io/badge/▶_在线_demo-qtwhat.github.io%2FcomposerV-D97757)](https://qtwhat.github.io/composerV/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB)
+![Platform: macOS · Apple Silicon](https://img.shields.io/badge/platform-macOS_·_Apple_Silicon-lightgrey)
+
+> **▶ 在线看可交互的管线总览：**[qtwhat.github.io/composerV](https://qtwhat.github.io/composerV/)，点任一阶段看它的内部结构。仓库里的 `index.html` 是源码，点上面链接看渲染后的页面。
+
 一个本地优先、以故事为先的助手，把大体量的个人视频档案（GoPro / 手机，几百 GB）
 整理成一个你自己认可的故事，再交给 Final Cut Pro 做后期收尾。
 
@@ -15,7 +22,8 @@
 五个阶段连成一条线，全部围绕一个中央 SQLite **store**（`composerv.db`）运转。慢的
 感知工作（VLM 看画面、Whisper 听声音、on-device 审美打分）**只跑一次并写入
 store**；导演每次**只读这份缓存**，所以出片和改片都快。这张图的可交互版本（点某个
-阶段看它的内部结构）就是项目主页：[`index.html`](index.html)。
+阶段看它的内部结构）在线地址是
+**[qtwhat.github.io/composerV](https://qtwhat.github.io/composerV/)**（源码：[`index.html`](index.html)）。
 
 ## 一句话概括
 
