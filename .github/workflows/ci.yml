@@ -34,4 +34,4 @@ jobs:
       # preview is a macOS-only extra (pyobjc/AVFoundation); it lets the
       # preview/export tests import and run on the runner.
       - run: uv sync --extra preview
-      - run: uv run pytest -q
+      - run: uv run --no-sync pytest -q
