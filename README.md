@@ -2,12 +2,12 @@
 
 **English** · [中文](README.zh-CN.md)
 
-[![Live demo](https://img.shields.io/badge/▶_live_demo-qtwhat.github.io%2FcomposerV-D97757)](https://qtwhat.github.io/composerV/)
+[![Live demo](https://img.shields.io/badge/▶_live_demo-qtwhat.github.io%2FcomposerV-D97757)](https://qtwhat.github.io/composerV/index.en.html)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB)
 ![Platform: macOS · Apple Silicon](https://img.shields.io/badge/platform-macOS_·_Apple_Silicon-lightgrey)
 
-> **▶ See the interactive pipeline overview:** [qtwhat.github.io/composerV](https://qtwhat.github.io/composerV/). Click any stage for its internals. The `index.html` in this repo is just the source; the link renders it.
+> **▶ See the interactive pipeline overview:** [qtwhat.github.io/composerV](https://qtwhat.github.io/composerV/index.en.html). Click any stage for its internals. The `index.html` in this repo is just the source; the link renders it.
 
 A local-first, **story-first** assistant for turning a large personal video archive
 (GoPro / phone, hundreds of GB) into a story you believe in, then handing it off to
@@ -25,8 +25,8 @@ Five stages on one line, all revolving around a single SQLite **store**
 listening to the audio, on-device aesthetic scoring) **runs once and writes the
 store**; the director only ever **reads that cache**, so making a cut and revising it
 both stay fast. The interactive version of this diagram (click a stage for its
-internals) is live at **[qtwhat.github.io/composerV](https://qtwhat.github.io/composerV/)**
-(source: [`index.html`](index.html)).
+internals) is live at **[qtwhat.github.io/composerV](https://qtwhat.github.io/composerV/index.en.html)**
+(source: [`index.en.html`](index.en.html)).
 
 ## The idea in one line
 

@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>composerV · local-first memory-reel assistant</title>
+<meta name="description" content="Turn a personal video archive into a beat-synced memory reel: local perception (VLM + Whisper + on-device aesthetics), Claude as the editor, zero-render live preview, then hand off to Final Cut Pro. Footage never leaves your machine.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="composerV: local-first, story-first memory-reel assistant">
+<meta property="og:description" content="Turn a personal video archive into a music-synced memory reel. Local perception, Claude as the editor, zero-render preview, hand off to Final Cut Pro.">
+<meta property="og:url" content="https://qtwhat.github.io/composerV/index.en.html">
+<meta property="og:image" content="https://qtwhat.github.io/composerV/docs/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="composerV: local-first, story-first memory-reel assistant">
+<meta name="twitter:description" content="Turn a personal video archive into a music-synced memory reel. Local perception, Claude as the editor, zero-render preview, hand off to Final Cut Pro.">
+<meta name="twitter:image" content="https://qtwhat.github.io/composerV/docs/social-card.png">
+<style>
+:root{
+  --ivory:#FAF9F5; --paper:#FFFFFF; --slate:#141413; --clay:#D97757; --clay-d:#B85C3E;
+  --oat:#E3DACC; --olive:#788C5D; --olive-l:#E8EDDF; --red:#C5453A; --red-l:#FCEEED;
+  --gray-100:#F5F4EE; --gray-150:#F0EEE6; --gray-200:#E6E3DA; --gray-300:#D1CFC5;
+  --gray-500:#87867F; --gray-700:#3D3D3A;
+  --sans:"PingFang SC",-apple-system,"Noto Sans SC","Microsoft YaHei","Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,"Noto Sans Mono",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ivory);color:var(--gray-700);font-family:var(--sans);
+  font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1520px;margin:0 auto;padding:36px 28px 80px}
+.eyebrow{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--gray-500);margin:0 0 8px}
+h1{font-size:30px;font-weight:600;letter-spacing:-.01em;color:var(--slate);margin:0 0 16px}
+h2{font-size:21px;font-weight:600;letter-spacing:-.01em;color:var(--slate);margin:0 0 4px}
+h3{font-size:15px;font-weight:600;color:var(--slate);margin:0 0 6px}
+.tldr{background:var(--paper);border-left:3px solid var(--clay);border-radius:8px;
+  padding:14px 18px;margin:0 0 18px;font-size:14.5px}
+.tldr b{color:var(--slate)}
+.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:12.5px;color:var(--gray-700)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.dot{width:12px;height:12px;border-radius:3px;display:inline-block}
+.line-dot{width:18px;height:0;border-top:2.5px solid;display:inline-block}
+
+/* layout: main + sticky aside */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:30px;align-items:start;margin-top:26px}
+.main{min-width:0}
+section{margin-top:46px}
+section:first-child{margin-top:0}
+.sec-head{margin-bottom:18px}
+
+/* aside */
+.aside{position:sticky;top:16px;align-self:start;height:calc(100vh - 32px)}
+.aside-card{height:100%;display:flex;flex-direction:column;background:var(--paper);
+  border:1.5px solid var(--gray-300);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(20,20,19,.04)}
+.aside-head{padding:13px 18px;border-bottom:1px solid var(--gray-200);display:flex;
+  align-items:center;justify-content:space-between;background:var(--gray-100)}
+.aside-head b{color:var(--slate);font-size:14px}
+.aside-head .hint{font-family:var(--mono);font-size:10.5px;color:var(--gray-500)}
+.explain{padding:16px 18px 22px;overflow-y:auto;flex:1}
+.ex-back{font-family:var(--mono);font-size:11.5px;color:var(--clay-d);cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;margin-bottom:14px;user-select:none}
+.ex-back:hover{color:var(--clay)}
+.ex-term{font-size:18px;font-weight:600;color:var(--slate);letter-spacing:-.01em}
+.ex-cat{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;
+  padding:2px 8px;border-radius:20px;margin-bottom:10px}
+.ex-def{font-size:13.5px;line-height:1.75;color:var(--gray-700);margin:6px 0 0}
+.ex-def code{font-family:var(--mono);font-size:11.5px;background:var(--gray-100);padding:1px 5px;border-radius:4px}
+.ex-rel{margin-top:16px;padding-top:12px;border-top:1px solid var(--gray-200)}
+.ex-rel .lab{font-family:var(--mono);font-size:10.5px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.chip{display:inline-block;font-size:12px;background:var(--gray-100);border:1px solid var(--gray-200);
+  color:var(--gray-700);padding:3px 10px;border-radius:20px;margin:0 6px 6px 0;cursor:pointer;transition:.12s}
+.chip:hover{background:var(--oat);border-color:var(--clay);color:var(--clay-d)}
+.idx-intro{font-size:12.5px;color:var(--gray-500);margin:0 0 16px;line-height:1.65}
+.idx-group{margin-bottom:16px}
+.idx-group .gh{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--clay-d);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+
+/* clickable inline term */
+.term{border-bottom:1px dashed var(--clay);cursor:pointer;color:inherit;
+  transition:background .12s;border-radius:2px;padding:0 1px}
+.term:hover{background:var(--oat)}
+
+/* diagram */
+.diagram-wrap{background:var(--paper);border:1.5px solid var(--gray-300);border-radius:12px;
+  padding:18px 14px 8px;overflow-x:auto}
+.diagram-hint{font-size:12.5px;color:var(--gray-500);margin:2px 4px 10px;font-family:var(--mono)}
+.topsvg{display:block;min-width:960px;width:100%;height:auto}
+.node{cursor:pointer}
+.node rect{transition:fill .15s,stroke .15s}
+.node:hover rect{fill:var(--oat);stroke:var(--clay)}
+.node .nt{font-weight:600;fill:var(--slate);font-size:15px}
+.node .nc{fill:var(--clay-d);font-size:11.5px;font-family:var(--mono)}
+
+/* module cards (stacked, full width) */
+.card{background:var(--paper);border:1.5px solid var(--gray-300);border-radius:14px;
+  padding:20px 22px;scroll-margin-top:18px;transition:box-shadow .25s,border-color .25s;margin-bottom:20px}
+.card.active{border-color:var(--clay);box-shadow:0 0 0 3px rgba(217,119,87,.18)}
+.card-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;
+  padding-bottom:12px;border-bottom:1px solid var(--gray-200)}
+.card-head h3{margin:0;font-size:16px}
+.cli{font-family:var(--mono);font-size:11.5px;background:var(--slate);color:#E8E6DE;
+  padding:2px 8px;border-radius:6px}
+.tag{font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:20px;font-weight:600}
+.tag.slow{background:var(--red-l);color:var(--red)}
+.tag.fast{background:var(--olive-l);color:var(--olive)}
+.tag.io{background:var(--gray-150);color:var(--gray-500)}
+.st{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+.st.done{background:var(--olive-l);color:var(--olive)}
+.st.plan{background:rgba(217,119,87,.16);color:var(--clay-d)}
+.st.disc{background:var(--gray-150);color:var(--gray-500)}
+.card.plan{border:1.5px dashed var(--clay);background:#FFFBF8}
+.card.plan.active{border-style:solid}
+.minisvg .plan-b{fill:#FFF4EE;stroke:#D97757;stroke-dasharray:5 3}
+.inline-st{font-family:var(--mono);font-size:9.5px;font-weight:600;padding:1px 6px;border-radius:10px;background:rgba(217,119,87,.16);color:var(--clay-d);vertical-align:middle}
+.struct-lab{font-family:var(--mono);font-size:11px;color:var(--gray-500);text-transform:uppercase;
+  letter-spacing:.06em;margin:14px 0 2px}
+.minisvg{display:block;width:100%;height:auto;margin:2px 0 6px}
+.minisvg text{stroke:none;paint-order:fill}
+.minisvg .b{fill:var(--paper);stroke:var(--gray-300);stroke-width:1.5}
+.minisvg .b.click{cursor:pointer;transition:.15s}
+.minisvg .b.click:hover{fill:var(--oat);stroke:var(--clay)}
+.minisvg .b.dark{fill:#141413;stroke:#141413}
+.minisvg .lbl{fill:var(--slate);font-weight:600;font-family:var(--sans)}
+.minisvg .sub{fill:var(--gray-500);font-family:ui-monospace,Menlo,monospace}
+.minisvg .dlbl{fill:#E8E6DE;font-weight:600;font-family:ui-monospace,Menlo,monospace}
+.minisvg .cap{fill:var(--gray-500);font-family:var(--sans);font-style:normal}
+.kv{margin-top:14px}
+.kv .row{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:7px 0;border-top:1px solid var(--gray-150)}
+.kv .row:first-child{border-top:none}
+.kv .k{font-size:12px;font-weight:600;color:var(--clay-d);font-family:var(--mono);padding-top:1px}
+.kv .v{font-size:13.5px}
+.kv .v code,.inline-code{font-family:var(--mono);font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px;color:var(--gray-700)}
+.files{font-family:var(--mono);font-size:11.5px;color:var(--gray-500);line-height:1.9}
+.note-flow{margin-top:12px;font-size:12.5px;color:var(--gray-700);background:var(--gray-100);border-radius:8px;padding:8px 12px}
+.note-flow b{color:var(--olive)}
+
+.qt{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:5px;font-weight:600;white-space:nowrap}
+.qt.sharp{background:var(--olive-l);color:var(--olive)}
+.qt.weak{background:var(--red-l);color:var(--red)}
+
+pre.code{background:var(--slate);color:#E8E6DE;font-family:var(--mono);font-size:12.5px;
+  line-height:1.65;padding:16px 18px;border-radius:10px;overflow-x:auto;margin:0;white-space:pre}
+pre.code .cm{color:#9aa088}
+pre.code .ph{background:rgba(217,119,87,.28);color:#FFE2D4;border-radius:3px;padding:0 3px}
+pre.code .hot{background:rgba(120,140,93,.22);display:inline-block;width:100%;border-radius:2px}
+pre.code .k2{color:#E3B7A0}
+
+.tabs{background:var(--paper);border:1.5px solid var(--gray-300);border-radius:12px;overflow:hidden}
+.tabbar{display:flex;border-bottom:1px solid var(--gray-200);background:var(--gray-100)}
+.tabbar button{flex:0 0 auto;border:none;background:none;font-family:var(--sans);font-size:13.5px;
+  font-weight:600;color:var(--gray-500);padding:12px 20px;cursor:pointer;border-bottom:2px solid transparent}
+.tabbar button.on{color:var(--slate);border-bottom-color:var(--clay);background:var(--paper)}
+.panel{display:none;padding:20px}
+.panel.on{display:block}
+.panel .step{font-size:12px;font-family:var(--mono);color:var(--clay-d);font-weight:600;margin:18px 0 8px}
+.panel .step:first-child{margin-top:0}
+.anno{font-size:13px;color:var(--gray-700);margin:10px 0 0}
+.anno b{color:var(--slate)}
+
+details{background:var(--paper);border:1.5px solid var(--gray-300);border-radius:10px;padding:0;margin-bottom:12px;overflow:hidden}
+details summary{cursor:pointer;list-style:none;padding:13px 18px;font-weight:600;color:var(--slate);font-size:14px;display:flex;align-items:center;gap:10px}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸";color:var(--clay);font-size:12px;transition:transform .2s}
+details[open] summary::before{transform:rotate(90deg)}
+details summary .meta{font-family:var(--mono);font-size:11px;color:var(--gray-500);font-weight:400;margin-left:auto}
+details .body{padding:0 18px 18px}
+.flow-chain{font-family:var(--mono);font-size:12.5px;line-height:2;color:var(--gray-700)}
+.flow-chain .arr{color:var(--clay);font-weight:700}
+.flow-chain b{color:var(--slate)}
+footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--gray-200);font-size:12px;color:var(--gray-500);font-family:var(--mono)}
+
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .aside{position:static;height:auto;order:-1}
+  .aside-card{max-height:62vh}
+  .wrap{padding:24px 16px 60px}
+  h1{font-size:25px}
+}
+</style>
+</head>
+<body>
+<div style="position:fixed;top:12px;right:16px;z-index:100;font-size:13px;font-family:ui-monospace,Menlo,monospace;background:rgba(255,255,255,.85);padding:5px 10px;border:1px solid #D1CFC5;border-radius:8px">
+<a href="index.en.html" style="color:#141413;font-weight:600;text-decoration:none">EN</a>
+<span style="color:#D1CFC5">·</span>
+<a href="index.html" style="color:#87867F;text-decoration:none">中文</a>
+</div>
+
+<!-- shared arrowhead markers, referenced by all svgs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="ah-slate" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#141413"/></marker>
+  <marker id="ah-olive" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#788C5D"/></marker>
+  <marker id="ah-clay" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#D97757"/></marker>
+  <marker id="ah-gray" markerWidth="8" markerHeight="8" refX="6.5" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L6.5,3 L0,6 Z" fill="#87867F"/></marker>
+</defs></svg>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">story-first · local-first · macOS / Apple Silicon</p>
+  <h1>composerV</h1>
+  <p style="margin:0 0 14px;font-size:15px;color:var(--gray-700)">Turn a personal video archive into a beat-synced memory reel: local perception (VLM for the picture + Whisper for the audio + Apple Vision for aesthetics), Claude as the editor, zero-render live preview, then hand off to Final Cut Pro for finishing. Footage never leaves your machine.</p>
+  <div class="tldr" style="border-left-color:var(--olive)">
+    <b>Run it</b>: <code class="inline-code">uv sync</code> → <code class="inline-code">uv run composerv demo ./composerv-demo</code> (generates fully synthetic demo footage, no downloads) → follow the printed catalog / music index / analyze / montage four-step to make a reel. The director step needs the <code class="inline-code">claude</code> CLI or an <code class="inline-code">ANTHROPIC_API_KEY</code>. Code is MIT; model licenses (including insightface's non-commercial restriction) are in THIRD_PARTY_NOTICES.md.
+  </div>
+  <div class="tldr">
+    Four stages strung into one line: <b>① Ingest catalog → ② Analyze → ③ Director montage → ④ Render preview / export</b>,
+    all revolving around one central <span class="term" data-k="assets">SQLite store</span>.
+    The slow perception analysis (<span class="term" data-k="VLM">VLM</span> for the picture + <span class="term" data-k="Whisper">Whisper</span> for the audio + on-device
+    <span class="term" data-k="aesthetics">aesthetic scoring</span>) <b>runs only once and is written into the store</b>; the director only <b>reads the cache</b> each time, so making and re-cutting reels is fast.
+    The director is a single LLM call: it renders the footage into a text <span class="term" data-k="footage_table">footage table</span>, and Claude reads it and returns the edit decisions.
+  </div>
+  <div class="legend">
+    <span><i class="dot" style="background:var(--gray-150);border:1.5px solid var(--gray-300)"></i>Processing stage (clickable)</span>
+    <span><i class="dot" style="background:var(--slate)"></i>store / code</span>
+    <span><i class="line-dot" style="border-color:var(--olive)"></i>writes the store</span>
+    <span><i class="line-dot" style="border-color:var(--clay);border-top-style:dashed"></i>reads the store</span>
+    <span><span class="st done">Implemented</span> <span class="st plan">Planned</span> module status</span>
+    <span><svg width="22" height="14" style="vertical-align:middle"><rect x="1" y="1" width="20" height="12" rx="3" fill="#FFF4EE" stroke="#D97757" stroke-width="1.3" stroke-dasharray="4 2"/></svg> dashed box = planned</span>
+    <span><span class="term" data-k="footage_table" style="border-bottom-style:dashed">dashed term</span> = click for the explanation on the right</span>
+  </div>
+</header>
+
+<!-- ============ data-flow map (full width) ============ -->
+<section>
+  <div class="sec-head"><p class="eyebrow">overview</p><h2>Data-flow map</h2></div>
+  <div class="diagram-wrap">
+    <p class="diagram-hint">click a stage box → jump to its details below　·　click a dashed term → explanation on the right　·　solid = implemented, dashed box = planned</p>
+    <svg class="topsvg" viewBox="0 52 1460 332" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#141413" stroke-width="2" marker-end="url(#ah-slate)">
+        <line x1="138" y1="102" x2="188" y2="102"/><line x1="358" y1="102" x2="408" y2="102"/>
+        <line x1="578" y1="102" x2="628" y2="102"/><line x1="798" y1="102" x2="848" y2="102"/>
+        <line x1="1018" y1="102" x2="1068" y2="102"/><line x1="1238" y1="102" x2="1288" y2="102"/>
+      </g>
+      <g font-size="11" fill="#3D3D3A" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" style="paint-order:stroke;stroke:#FFFFFF;stroke-width:3px">
+        <text x="163" y="92">catalog</text><text x="383" y="92">analyze</text>
+        <text x="603" y="92">confirm</text><text x="823" y="92">montage</text><text x="1043" y="92">preview</text>
+      </g>
+
+      <g>
+        <rect x="18" y="74" width="120" height="56" rx="10" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text x="78" y="98" text-anchor="middle" font-size="13" fill="#141413" font-weight="600" font-family="'PingFang SC',-apple-system,'Microsoft YaHei','Segoe UI',sans-serif">media folder</text>
+        <text x="78" y="116" text-anchor="middle" font-size="10.5" fill="#87867F" font-family="ui-monospace,Menlo,monospace">videos · photos</text>
+      </g>
+      <g class="node" data-target="card-ingest">
+        <rect x="192" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text class="nt" x="275" y="88" text-anchor="middle">① INGEST</text>
+        <text class="nc" x="275" y="108" text-anchor="middle">composerv catalog</text>
+        <text x="275" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● implemented</text>
+      </g>
+      <g class="node" data-target="card-analyze">
+        <rect x="412" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text class="nt" x="495" y="88" text-anchor="middle">② ANALYZE</text>
+        <text class="nc" x="495" y="108" text-anchor="middle">composerv analyze</text>
+        <text x="495" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● implemented</text>
+      </g>
+      <g class="node" data-target="card-confirm">
+        <rect x="632" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text class="nt" x="715" y="88" text-anchor="middle">③ CONFIRM</text>
+        <text class="nc" x="715" y="108" text-anchor="middle">face confirm + user brief</text>
+        <text x="715" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● implemented</text>
+      </g>
+      <g class="node" data-target="card-director">
+        <rect x="852" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text class="nt" x="935" y="88" text-anchor="middle">④ DIRECTOR</text>
+        <text class="nc" x="935" y="108" text-anchor="middle">composerv montage</text>
+        <text x="935" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● implemented</text>
+      </g>
+      <g class="node" data-target="card-render">
+        <rect x="1072" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text class="nt" x="1155" y="88" text-anchor="middle">⑤ RENDER</text>
+        <text class="nc" x="1155" y="108" text-anchor="middle">preview · export</text>
+        <text x="1155" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● implemented</text>
+      </g>
+      <g>
+        <rect x="1292" y="74" width="134" height="56" rx="10" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+        <text x="1359" y="98" text-anchor="middle" font-size="12" fill="#141413" font-weight="600" font-family="'PingFang SC',-apple-system,'Microsoft YaHei','Segoe UI',sans-serif">preview / FCPXML</text>
+        <text x="1359" y="116" text-anchor="middle" font-size="10.5" fill="#87867F" font-family="ui-monospace,Menlo,monospace">storyboard · mp4</text>
+      </g>
+
+      <g stroke="#788C5D" stroke-width="2" marker-end="url(#ah-olive)">
+        <line x1="275" y1="140" x2="275" y2="244"/><line x1="495" y1="140" x2="495" y2="244"/>
+      </g>
+      <line x1="715" y1="140" x2="715" y2="244" stroke="#D97757" stroke-width="2" marker-end="url(#ah-clay)" marker-start="url(#ah-clay)"/>
+      <line x1="935" y1="246" x2="935" y2="142" stroke="#D97757" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ah-clay)"/>
+      <g font-size="11" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" style="paint-order:stroke;stroke:#FFFFFF;stroke-width:3.5px">
+        <text x="275" y="196" fill="#788C5D" font-weight="600">write</text>
+        <text x="495" y="196" fill="#788C5D" font-weight="600">write</text>
+        <text x="715" y="196" fill="#D97757" font-weight="600">read/write</text>
+        <text x="935" y="196" fill="#D97757" font-weight="600">read</text>
+      </g>
+
+      <rect x="192" y="246" width="1046" height="126" rx="12" fill="#141413"/>
+      <text x="210" y="270" font-size="13" fill="#E8E6DE" font-weight="600" font-family="'PingFang SC',-apple-system,'Microsoft YaHei','Segoe UI',sans-serif">SQLite store · composerv.db</text>
+      <text x="1222" y="270" font-size="10.5" fill="#9aa088" text-anchor="end" font-family="ui-monospace,Menlo,monospace">analyze once, reuse many times</text>
+      <g font-size="11.5" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">
+        <text x="210" y="296"><tspan fill="#788C5D">catalog writes</tspan>  → assets · clarity · clip_summaries · keyframes · captions</text>
+        <text x="210" y="316"><tspan fill="#788C5D">analyze writes</tspan>  → clip_moments · transcript · clip_aesthetics</text>
+        <text x="210" y="336"><tspan fill="#D97757">confirm reads/writes</tspan>  → persons (names + notes) · briefs (user brief)</text>
+        <text x="210" y="356"><tspan fill="#D97757">montage reads</tspan>  → moments + transcript + aesthetics + names + user brief  ⇒  footage table</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<div class="layout">
+<main class="main">
+
+<!-- ============ module details ============ -->
+<section>
+  <div class="sec-head"><p class="eyebrow">modules</p><h2>Module details: internals · inputs · outputs</h2></div>
+
+  <!-- INGEST -->
+  <div class="card" id="card-ingest">
+    <div class="card-head"><h3>① INGEST</h3><span class="cli">composerv catalog</span><span class="st done">Implemented</span></div>
+    <div class="struct-lab">Internals</div>
+    <svg class="minisvg" viewBox="0 0 1000 118" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#87867F" stroke-width="1.6" marker-end="url(#ah-gray)">
+        <line x1="180" y1="59" x2="210" y2="59"/><line x1="384" y1="59" x2="414" y2="59"/><line x1="630" y1="59" x2="660" y2="59"/>
+      </g>
+      <g><rect class="b" x="10" y="32" width="170" height="54" rx="9"/>
+        <text class="lbl" x="95" y="56" text-anchor="middle" font-size="13.5">scan · probe</text>
+        <text class="sub" x="95" y="74" text-anchor="middle" font-size="10.5">ffprobe metadata</text></g>
+      <g class="b click" data-k="proxy"><rect class="b click" x="214" y="32" width="170" height="54" rx="9"/>
+        <text class="lbl" x="299" y="56" text-anchor="middle" font-size="13.5">build proxy</text>
+        <text class="sub" x="299" y="74" text-anchor="middle" font-size="10.5">CFR H.264 proxy</text></g>
+      <g class="b click" data-k="keyframes"><rect class="b click" x="460" y="32" width="170" height="54" rx="9"/>
+        <text class="lbl" x="545" y="56" text-anchor="middle" font-size="13.5">summary + keyframes</text>
+        <text class="sub" x="545" y="74" text-anchor="middle" font-size="10.5">VLM/Claude · 4 frames</text></g>
+      <g class="b click" data-k="clarity"><rect class="b click dark" x="664" y="32" width="326" height="54" rx="9"/>
+        <text class="dlbl" x="827" y="54" text-anchor="middle" font-size="12.5">write store</text>
+        <text x="827" y="72" text-anchor="middle" font-size="10.5" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">assets · clarity · clip_summaries · keyframes</text></g>
+    </svg>
+    <div class="kv">
+      <div class="row"><div class="k">Does</div><div class="v">Scans the directory, probes media metadata, builds a uniform <span class="term" data-k="CFR">constant-frame-rate</span> <span class="term" data-k="proxy">proxy</span> clip, writes a one-line summary with a local VLM or Claude, extracts 4 representative <span class="term" data-k="keyframes">keyframes</span>, and writes it all into the store.</div></div>
+      <div class="row"><div class="k">In</div><div class="v">One media directory path.</div></div>
+      <div class="row"><div class="k">Out</div><div class="v">Store tables <span class="term" data-k="assets">assets</span> · <span class="term" data-k="clarity">clarity</span> · <span class="term" data-k="clip_summaries">clip_summaries</span> · <span class="term" data-k="keyframes">keyframes</span>; proxies and thumbnails on disk.</div></div>
+      <div class="row"><div class="k">Files</div><div class="v"><span class="files">index/scanner.py · index/proxy.py · clarity/ingest.py · clarity/summarize.py · clarity/keyframes.py · store/db.py</span></div></div>
+    </div>
+    <div class="note-flow">Passed downstream: the asset list in the store + proxy paths, for ② Analyze to read.</div>
+  </div>
+
+  <!-- ANALYZE -->
+  <div class="card" id="card-analyze">
+    <div class="card-head"><h3>② ANALYZE</h3><span class="cli">composerv analyze</span><span class="st done">Implemented</span><span class="tag slow">slow · runs once</span></div>
+    <div class="struct-lab">Internals · three parallel paths: see / hear / aesthetics</div>
+    <svg class="minisvg" viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+      <!-- proxy -> 3 senses -->
+      <g stroke="#87867F" stroke-width="1.6" fill="none">
+        <path d="M136,105 C220,105 220,42 296,42" marker-end="url(#ah-gray)"/>
+        <path d="M136,105 L296,105" marker-end="url(#ah-gray)"/>
+        <path d="M136,105 C220,105 220,168 296,168" marker-end="url(#ah-gray)"/>
+      </g>
+      <!-- senses -> store tables -->
+      <g stroke="#788C5D" stroke-width="1.8" marker-end="url(#ah-olive)">
+        <line x1="604" y1="42" x2="700" y2="42"/><line x1="604" y1="105" x2="700" y2="105"/><line x1="604" y1="168" x2="700" y2="168"/>
+      </g>
+      <g class="b click" data-k="proxy"><rect class="b click" x="14" y="80" width="122" height="50" rx="9"/>
+        <text class="lbl" x="75" y="102" text-anchor="middle" font-size="13">proxy clip</text>
+        <text class="sub" x="75" y="119" text-anchor="middle" font-size="10">input frame source</text></g>
+      <!-- vision -->
+      <g class="b click" data-k="sub_vlm"><rect class="b click" x="300" y="16" width="304" height="52" rx="9"/>
+        <text class="lbl" x="318" y="40" font-size="13.5">👁 vision · VLM</text>
+        <text class="sub" x="318" y="58" font-size="10.5">caption + OCR + grounded objects</text></g>
+      <!-- hearing -->
+      <g class="b click" data-k="sub_whisper"><rect class="b click" x="300" y="79" width="304" height="52" rx="9"/>
+        <text class="lbl" x="318" y="103" font-size="13.5">👂 hearing · MLX-Whisper</text>
+        <text class="sub" x="318" y="121" font-size="10.5">transcribe speech (with timestamps)</text></g>
+      <!-- aesthetics -->
+      <g class="b click" data-k="sub_aesthetics"><rect class="b click" x="300" y="142" width="304" height="52" rx="9"/>
+        <text class="lbl" x="318" y="166" font-size="13.5">✦ aesthetics · Apple Vision</text>
+        <text class="sub" x="318" y="184" font-size="10.5">per-frame scoring → best_t + quality tags</text></g>
+      <!-- store table chips -->
+      <g class="b click" data-k="clip_moments"><rect class="b click dark" x="700" y="22" width="290" height="40" rx="8"/>
+        <text class="dlbl" x="845" y="46" text-anchor="middle" font-size="12">clip_moments</text></g>
+      <g class="b click" data-k="transcript"><rect class="b click dark" x="700" y="85" width="290" height="40" rx="8"/>
+        <text class="dlbl" x="845" y="109" text-anchor="middle" font-size="12">transcript</text></g>
+      <g class="b click" data-k="clip_aesthetics"><rect class="b click dark" x="700" y="148" width="290" height="40" rx="8"/>
+        <text class="dlbl" x="845" y="172" text-anchor="middle" font-size="12">clip_aesthetics</text></g>
+    </svg>
+    <p class="anno" style="margin:2px 0 0;font-size:12.5px;color:var(--gray-500)">Three branches start from the same proxy, each extracting visual / audio / aesthetic information and writing to its own store table. Aesthetics can be turned off with <code class="inline-code">--no-aesthetics</code>.</p>
+    <div class="kv">
+      <div class="row"><div class="k">Does</div><div class="v">Runs one deep perception pass per clip and caches it: <span class="term" data-k="sub_vlm">VLM extracts visual moments</span>, <span class="term" data-k="sub_whisper">Whisper transcribes speech</span>, and optionally <span class="term" data-k="sub_aesthetics">on-device aesthetic scoring</span>. The director reads the cache later and never re-runs the models.</div></div>
+      <div class="row"><div class="k">In</div><div class="v"><code>analyze_scope(store, paths, *, aes_fps=2.0, enable_aesthetics=True, ...)</code>; CLI flags <code>--aes-fps</code> / <code>--no-aesthetics</code>.</div></div>
+      <div class="row"><div class="k">Out</div><div class="v">Writes <span class="term" data-k="clip_moments">clip_moments</span> · <span class="term" data-k="transcript">transcript</span> · <span class="term" data-k="clip_aesthetics">clip_aesthetics</span>.</div></div>
+      <div class="row"><div class="k">Files</div><div class="v"><span class="files">clarity/analyze.py · clarity/understand.py · audio/transcribe.py · analyze/aesthetics.py</span></div></div>
+    </div>
+    <div class="note-flow">Passed downstream: the three perception tables the director reads (<b>clip_moments · transcript · clip_aesthetics</b>).</div>
+  </div>
+
+  <!-- AESTHETICS sub-card -->
+  <div class="card" id="card-aesthetics">
+    <div class="card-head"><h3>② · submodule AESTHETICS scoring</h3><span class="st done">Implemented</span><span class="tag io">inside analyze</span></div>
+    <div class="struct-lab">Internals</div>
+    <svg class="minisvg" viewBox="0 0 1000 110" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#87867F" stroke-width="1.6" marker-end="url(#ah-gray)">
+        <line x1="196" y1="55" x2="226" y2="55"/><line x1="452" y1="55" x2="482" y2="55"/></g>
+      <line x1="732" y1="55" x2="762" y2="55" stroke="#788C5D" stroke-width="1.8" marker-end="url(#ah-olive)"/>
+      <g><rect class="b" x="10" y="28" width="186" height="54" rx="9"/>
+        <text class="lbl" x="103" y="52" text-anchor="middle" font-size="13.5">sample frames @ aes_fps</text>
+        <text class="sub" x="103" y="70" text-anchor="middle" font-size="10.5">default 2 fps</text></g>
+      <g class="b click" data-k="score_frames"><rect class="b click" x="226" y="28" width="226" height="54" rx="9"/>
+        <text class="lbl" x="339" y="52" text-anchor="middle" font-size="13.5">Swift · Apple Vision</text>
+        <text class="sub" x="339" y="70" text-anchor="middle" font-size="10.5">per-frame scoring score_frames</text></g>
+      <g class="b click" data-k="distill_quality"><rect class="b click" x="482" y="28" width="250" height="54" rx="9"/>
+        <text class="lbl" x="607" y="52" text-anchor="middle" font-size="13.5">distill tags + find best_t</text>
+        <text class="sub" x="607" y="70" text-anchor="middle" font-size="10.5">distill_quality / best_moment</text></g>
+      <g class="b click" data-k="clip_aesthetics"><rect class="b click dark" x="762" y="28" width="228" height="54" rx="9"/>
+        <text class="dlbl" x="876" y="50" text-anchor="middle" font-size="12">clip_aesthetics</text>
+        <text x="876" y="68" text-anchor="middle" font-size="10" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">best_t + curve</text></g>
+    </svg>
+    <div class="note-flow" style="background:var(--paper);border:1px solid var(--gray-200)">
+      <b style="color:var(--slate)">score → tag thresholds</b> (<span class="term" data-k="distill_quality">distill_quality</span>):
+      <span class="qt sharp">[清晰·构图好]</span> (sharp, well-composed) when <code class="inline-code">score ≥ 0.4</code> and not a <span class="term" data-k="utility_frame">utility</span> frame;
+      <span class="qt weak">[弱/过渡]</span> (weak / transitional) when utility or <code class="inline-code">score ≤ -0.2</code>; the middle band → empty tag.<br>
+      <b style="color:var(--clay-d)">Recent decision</b>: aesthetics only picks the <span class="term" data-k="in_point">in-point</span> and <b style="color:var(--clay-d)">plays no part in keeping or dropping clips</b>. A blind human test found that culling by image quality wrongly dropped emotionally valuable clips, so it was pulled back.
+    </div>
+  </div>
+
+  <!-- CONFIRM (new, planned requirement) -->
+  <div class="card" id="card-confirm">
+    <div class="card-head"><h3>③ CONFIRM</h3><span class="cli">composerv confirm</span><span class="st done">Implemented</span></div>
+    <div class="struct-lab">Internals · one human-in-the-loop confirmation after perception</div>
+    <svg class="minisvg" viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#87867F" stroke-width="1.6" fill="none">
+        <path d="M170,40 C240,40 240,50 298,50" marker-end="url(#ah-gray)" marker-start="url(#ah-gray)"/>
+        <path d="M170,48 C236,82 244,150 298,158" marker-end="url(#ah-gray)"/>
+        <path d="M170,134 C242,134 242,86 298,86" marker-end="url(#ah-gray)" marker-start="url(#ah-gray)"/>
+        <path d="M650,50 C684,50 684,86 712,90" marker-end="url(#ah-gray)"/>
+        <path d="M650,158 C686,158 690,120 712,116" marker-end="url(#ah-gray)"/>
+      </g>
+      <g class="b click" data-k="user_brief"><rect class="b" x="12" y="16" width="158" height="46" rx="9"/>
+        <text class="lbl" x="91" y="38" text-anchor="middle" font-size="13" fill="#B85C3E">👤 user</text>
+        <text class="sub" x="91" y="54" text-anchor="middle" font-size="10">interactive confirm</text></g>
+      <g class="b click" data-k="persons"><rect class="b click dark" x="12" y="111" width="158" height="46" rx="9"/>
+        <text class="dlbl" x="91" y="131" text-anchor="middle" font-size="11.5">persons / faces</text>
+        <text x="91" y="148" text-anchor="middle" font-size="9.5" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">detected faces</text></g>
+      <g class="b click" data-k="sub_confirm_faces"><rect class="b click" x="300" y="22" width="350" height="58" rx="9"/>
+        <text class="lbl" x="318" y="46" font-size="13.5" fill="#B85C3E">👥 face confirm</text>
+        <text class="sub" x="318" y="65" font-size="10.5">ask "who is this?" against the person library · skippable · names saved locally</text></g>
+      <g class="b click" data-k="sub_user_meta"><rect class="b click" x="300" y="128" width="350" height="58" rx="9"/>
+        <text class="lbl" x="318" y="152" font-size="13.5" fill="#B85C3E">📝 user meta input</text>
+        <text class="sub" x="318" y="171" font-size="10.5">extra context / style requests (free text)</text></g>
+      <g class="b click" data-k="user_brief"><rect class="b click dark" x="712" y="72" width="276" height="62" rx="9"/>
+        <text class="dlbl" x="850" y="98" text-anchor="middle" font-size="12.5">user brief · user_brief</text>
+        <text x="850" y="118" text-anchor="middle" font-size="10" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">unified label → fed to the director</text></g>
+    </svg>
+    <p class="anno" style="margin:2px 0 0;font-size:12.5px;color:var(--gray-500)">This step is inserted after perception: detected faces are shown to the user to claim, and the user's extra notes are collected and gathered into a "user brief". The user can skip at any time.</p>
+    <div class="kv">
+      <div class="row"><div class="k">Does</div><div class="v">Two things: ① "<span class="term" data-k="sub_confirm_faces">face confirm</span>" shows the perceived faces / person clusters to the user, asks "who is this" against the local <span class="term" data-k="persons">person library</span>, the user gives a name or skips, and names are saved back to the local library; ② "<span class="term" data-k="sub_user_meta">user meta input</span>" lets the user add extra context, style requests, and other free text. Both are gathered under one label, the <span class="term" data-k="user_brief">user brief</span>.</div></div>
+      <div class="row"><div class="k">In</div><div class="v">The faces / person clusters in the perception results (from <span class="term" data-k="faces">faces</span>) + the existing <span class="term" data-k="persons">persons</span> library; plus the user's interactive input.</div></div>
+      <div class="row"><div class="k">Out</div><div class="v">Updated names in the local <code>persons</code> table; one <span class="term" data-k="user_brief">user_brief</span> packaged up and fed to the director.</div></div>
+      <div class="row"><div class="k">Files</div><div class="v"><span class="files">confirm/form.py · confirm/apply.py · confirm/server.py · confirm/enroll_glue.py · faces/review.py · store/db.py (persons.note + briefs table)</span></div></div>
+    </div>
+    <div class="note-flow" style="background:#FFF6F1;border:1px solid rgba(217,119,87,.3)"><b style="color:var(--clay-d)">Handoff to the director</b>: the user brief is injected into the director prompt as the <b style="color:var(--clay-d)">highest-priority human guidance</b>, matching the director's rule 1 "Human-led". Implementation: <code class="inline-code">composerv confirm &lt;scope&gt;</code> first runs ensure_faces (detect any missing faces + re-cluster), then opens a local browser form, and saves back to persons/briefs; montage reads the brief by scope and injects it into the HUMAN BRIEF section of the director prompt, with person notes carried in the who field into the footage table.</div>
+  </div>
+
+  <!-- DIRECTOR -->
+  <div class="card" id="card-director">
+    <div class="card-head"><h3>④ DIRECTOR</h3><span class="cli">composerv montage</span><span class="st done">Implemented</span><span class="tag fast">fast · reads cache</span></div>
+    <div class="struct-lab">Internals</div>
+    <svg class="minisvg" viewBox="0 0 1000 120" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#87867F" stroke-width="1.6" marker-end="url(#ah-gray)">
+        <line x1="190" y1="60" x2="212" y2="60"/><line x1="384" y1="60" x2="406" y2="60"/>
+        <line x1="588" y1="60" x2="610" y2="60"/><line x1="746" y1="60" x2="768" y2="60"/></g>
+      <g class="b click" data-k="footage_table"><rect class="b click" x="8" y="32" width="182" height="56" rx="9"/>
+        <text class="lbl" x="99" y="56" text-anchor="middle" font-size="12.5">read store → build table</text>
+        <text class="sub" x="99" y="74" text-anchor="middle" font-size="10">footage table</text></g>
+      <g class="b click" data-k="build_director_montage"><rect class="b click" x="212" y="32" width="172" height="56" rx="9"/>
+        <text class="lbl" x="298" y="56" text-anchor="middle" font-size="12.5">one Claude call</text>
+        <text class="sub" x="298" y="74" text-anchor="middle" font-size="10">opus-4-6</text></g>
+      <g class="b click" data-k="parse_edit"><rect class="b click" x="406" y="32" width="182" height="56" rx="9"/>
+        <text class="lbl" x="497" y="56" text-anchor="middle" font-size="12.5">parse · resolve · clamp</text>
+        <text class="sub" x="497" y="74" text-anchor="middle" font-size="10">restore id / clamp duration</text></g>
+      <g class="b click" data-k="split_edit_by_day"><rect class="b click" x="610" y="32" width="136" height="56" rx="9"/>
+        <text class="lbl" x="678" y="56" text-anchor="middle" font-size="12.5">split by day</text>
+        <text class="sub" x="678" y="74" text-anchor="middle" font-size="10">split_by_day</text></g>
+      <g class="b click" data-k="MontagePlan"><rect class="b click dark" x="768" y="32" width="224" height="56" rx="9"/>
+        <text class="dlbl" x="880" y="56" text-anchor="middle" font-size="12.5">MontagePlan[]</text>
+        <text x="880" y="74" text-anchor="middle" font-size="10" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">one segment per day</text></g>
+    </svg>
+    <div class="kv">
+      <div class="row"><div class="k">Does</div><div class="v">Builds the <span class="term" data-k="footage_table">footage table</span> from the store → hands it to Claude as the editor to make decisions → parses the JSON, <span class="term" data-k="resolve_segments">restores clip_id</span>, and clamps to real durations → <span class="term" data-k="split_edit_by_day">splits by day</span>. See "The director's core prompt" below.</div></div>
+      <div class="row"><div class="k">In</div><div class="v"><code>build_director_montage(store, scope_paths, *, music_dir, feeling=None, budget_s=120, max_part_s=300, sensitive=None, ...)</code><br>The <span class="term" data-k="user_brief">user brief</span> from the confirm stage (brief + person notes) is injected via the <code>brief=</code> parameter into the prompt's HUMAN BRIEF section, as the highest-priority human guidance (matching rule 1).</div></div>
+      <div class="row"><div class="k">Out</div><div class="v"><code>list[</code><span class="term" data-k="MontagePlan">MontagePlan</span><code>]</code>, with <span class="term" data-k="feeling">feeling</span> / track / tempo / label / <span class="term" data-k="IntentionList">intention</span>.</div></div>
+      <div class="row"><div class="k">Files</div><div class="v"><span class="files">director/montage.py · director/table.py · director/prompt.py · director/plan.py · analyze/backends/claude_cli.py</span></div></div>
+    </div>
+    <div class="note-flow">Passed downstream: one <b>IntentionList</b> (the edit-decision list) per segment + a <span class="term" data-k="MusicBed" style="color:var(--olive);font-weight:600">MusicBed</span> (music and ducking rules). The director also outputs a <span class="term" data-k="MusicIntent" style="color:var(--olive);font-weight:600">MusicIntent</span> (what feeling it wants, without naming a track); which track is chosen is decided by the deterministic scorer <span class="term" data-k="rank_tracks">rank_tracks</span>. See "How music gets chosen" below.</div>
+  </div>
+
+  <!-- RENDER -->
+  <div class="card" id="card-render">
+    <div class="card-head"><h3>⑤ RENDER</h3><span class="cli">composerv preview / export</span><span class="st done">Implemented</span></div>
+    <div class="struct-lab">Internals · one IntentionList, several outputs</div>
+    <svg class="minisvg" viewBox="0 0 1000 210" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#87867F" stroke-width="1.6" fill="none">
+        <path d="M198,105 C300,105 300,32 408,32" marker-end="url(#ah-gray)"/>
+        <path d="M198,105 C300,105 300,82 408,82" marker-end="url(#ah-gray)"/>
+        <path d="M198,105 C300,105 300,132 408,132" marker-end="url(#ah-gray)"/>
+        <path d="M198,105 C300,105 300,182 408,182" marker-end="url(#ah-gray)"/></g>
+      <g class="b click" data-k="IntentionList"><rect class="b click" x="14" y="78" width="184" height="54" rx="9"/>
+        <text class="lbl" x="106" y="100" text-anchor="middle" font-size="13">IntentionList</text>
+        <text class="sub" x="106" y="118" text-anchor="middle" font-size="10">edit-decision list</text></g>
+      <g><rect class="b" x="408" y="12" width="270" height="40" rx="8"/>
+        <text class="lbl" x="424" y="37" font-size="12.5">EDL preview</text>
+        <text class="sub" x="540" y="37" font-size="10">proxy · zero-render live playback</text></g>
+      <g><rect class="b" x="408" y="62" width="270" height="40" rx="8"/>
+        <text class="lbl" x="424" y="87" font-size="12.5">FCPXML</text>
+        <text class="sub" x="540" y="87" font-size="10">references originals · into Final Cut</text></g>
+      <g><rect class="b" x="408" y="112" width="270" height="40" rx="8"/>
+        <text class="lbl" x="424" y="137" font-size="12.5">storyboard.html</text>
+        <text class="sub" x="560" y="137" font-size="10">keyframe storyboard</text></g>
+      <g><rect class="b" x="408" y="162" width="270" height="40" rx="8"/>
+        <text class="lbl" x="424" y="187" font-size="12.5">lite.mp4</text>
+        <text class="sub" x="540" y="187" font-size="10">music + ducking + watermark</text></g>
+    </svg>
+    <div class="kv">
+      <div class="row"><div class="k">Does</div><div class="v">Four outputs from the same <span class="term" data-k="IntentionList">IntentionList</span>: EDL preview (proxy, zero-render live playback), FCPXML (references the <b>originals</b> for finishing in Final Cut), a storyboard, and an optional MP4 export (with <span class="term" data-k="ducking">ducking</span> + watermark).</div></div>
+      <div class="row"><div class="k">In</div><div class="v"><code>IntentionList</code> + proxy / original path mapping.</div></div>
+      <div class="row"><div class="k">Out</div><div class="v"><code>*.edl.json</code> · <code>*.fcpxml</code> · <code>*_storyboard.html</code> · <code>*.lite.mp4</code></div></div>
+      <div class="row"><div class="k">Files</div><div class="v"><span class="files">render/preview/edl.py · render/preview/player.py · render/fcpxml/emitter.py · render/storyboard.py · render/export.py</span></div></div>
+    </div>
+    <div class="note-flow">Final output: a project you can keep polishing in FCP, or a ready-to-watch preview / finished reel.</div>
+  </div>
+
+  <!-- AUTO-REFRAME -->
+  <div class="card" id="card-reframe">
+    <div class="card-head"><h3>⑤ · submodule AUTO-REFRAME</h3><span class="st done">Implemented</span><span class="tag io">inside render</span></div>
+    <div class="kv">
+      <div class="row"><div class="k">Does</div><div class="v">When vertical or tilted footage enters a 16:9 timeline: the crop window follows the subject (a smooth path driven by face / person boxes), rotated footage is auto-uprighted, and no black bars are left. The path is computed offline and written into the store's <code class="inline-code">reframe_tracks</code> table, then applied per segment on export.</div></div>
+      <div class="row"><div class="k">Files</div><div class="v"><span class="files">reframe/detect.py · reframe/track.py · reframe/path.py · render/reframe.py (export_reframed)</span></div></div>
+    </div>
+  </div>
+
+  <!-- DIRECTION 3 (planned) -->
+  <div class="card plan" id="card-direction3">
+    <div class="card-head"><h3>Planned · music-driven editing (direction 3)</h3><span class="st plan">Planned</span></div>
+    <div class="kv">
+      <div class="row"><div class="k">Idea</div><div class="v">A two-pass design: the first pass cuts by emotion and picks a track as usual; after analyzing the chosen track's structure (climax point <code class="inline-code">climax_t</code> + phrase boundaries), a lightweight second-pass director locally reorders while keeping the coarse chronological order and marks the strongest shots; finally a deterministic alignment: <b>slide the music</b> (<code class="inline-code">MusicBed.start_offset_s</code>, without distorting the picture) so the music's climax lands on the strongest shot, and snap the cut points to the phrases.</div></div>
+      <div class="row"><div class="k">Status</div><div class="v">The design spec has passed adversarial review (docs/superpowers/specs/2026-06-26-music-direction3-design.md); 10 TDD tasks are planned but not yet started.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ the director's core prompt ============ -->
+<section>
+  <div class="sec-head"><p class="eyebrow">the director's brain</p><h2>The director's core prompt</h2>
+    <p style="margin:8px 0 0;font-size:14px;color:var(--gray-700)">The director does not watch the video; it reads the footage as a text timeline and cuts. The full prompt comes from <span class="inline-code">director/prompt.py</span>, reproduced verbatim.</p>
+  </div>
+  <div class="tabs">
+    <div class="tabbar">
+      <button class="on" data-t="0">Full prompt</button>
+      <button data-t="1">Footage table sample</button>
+      <button data-t="2">Input → output contract</button>
+    </div>
+    <div class="panel on">
+      <div class="step">① PREAMBLE · role and task (prompt.py:16-23)</div>
+      <pre class="code">You are the editor of a personal memory reel — a short, music-backed montage cut from one family's home footage, the kind of video someone keeps to relive a day. You do NOT watch the video; you read it as a timeline of descriptions. Decide the edit: which moments to keep, in what order, how long each runs, and where the music should step back for someone's voice. A human will review and may adjust your cut, so give a short reason for each choice.
+
+INPUT</pre>
+      <div class="step">② HEADER · assembled dynamically per run (prompt.py:85-96)<span style="color:var(--gray-500);font-weight:400">　<span class="ph" style="background:rgba(217,119,87,.18);color:var(--clay-d)">highlight</span> = runtime variable</span></div>
+      <pre class="code">- Feeling: <span class="ph">{feeling}</span>  (pace: upbeat = quick cuts, calm/nostalgic = longer holds, sad = lingering)
+- Music: chosen AFTER your edit to match the energy arc you describe. Cut to the shot lengths the feeling implies; cuts are aligned to the music's beats afterward.
+- Target length: about <span class="ph">{budget_s}</span>s — be selective; leave out weak material to stay near it.
+- Sensitive people (do NOT feature): <span class="ph">{sensitive}</span>
+- Footage table, chronological. Timestamps are in each clip's OWN seconds. Each clip's rows over time are: 'visual' (what is seen), 'speech' (what is said), and 'on screen' (text read off signs/captions — a clue to place or event, useful for the arc):
+
+<span class="ph">{footage_table}</span></pre>
+      <div class="step">③ RULES + PROCESS + output schema (prompt.py:25-72)<span style="color:var(--gray-500);font-weight:400">　green background = recent changes tied to quality tags / the best moment</span></div>
+      <pre class="code">HOW TO EDIT (in priority order)
+1. Human-led. If a clip carries a human note marking importance or a highlighted span, honour
+   it above your own judgement — keep it, and keep what they pointed at.
+<span class="hot">2. Curate by emotion, not by counting. Keep what is worth remembering — warmth, humour, a
+   milestone, a striking sight, something said that matters. Drop filler: logistics, "are you
+   filming me", ambient noise, repetitive nothing. Judge this by emotion and memory value, NOT by
+   image quality — a treasured moment that is a little soft still belongs; a sharp shot of nothing
+   does not. (Quality tags inform the in-point only; see rule 8.)</span>
+3. Two dimensions count equally. A moment earns its place by what is SAID (a real exchange) OR
+   what is SEEN (a child's first try, a view, a shared activity). Do not keep only talking clips.
+4. Keep a worthy conversation WHOLE. If an exchange is worth remembering, keep it complete —
+   never cut a person off mid-sentence, and never reduce a conversation to a single line. There
+   is no "best line"; keep the moment.
+5. Music is the bed. The reel is set to music; keep it in front by default. Only ask to duck it
+   (duck_music=true) during a conversation or sound you are deliberately featuring. Do not duck
+   the whole reel.
+6. Pace by feeling. A visual moment is a short shot at about the feeling's shot length and
+   should fall on a beat. A kept conversation is a long hold — let it play; off the beat is fine.
+7. Keep chronological order so the day can be relived in sequence. Within that, prefer a smooth
+   visual flow (don't jam two jarringly different shots back to back) when the order has slack.
+<span class="hot">8. Open a visual shot on its active / meaningful instant, not always the clip's start. Some clips
+   show a quality hint: a header "best ~Xs" (the sharpest, best-composed instant) and per-row tags
+   "[清晰·构图好]" (a strong frame) or "[弱/过渡]" (soft / transitional / filler). Prefer opening a
+   shot at or near its best moment, and prefer a "[清晰·构图好]" frame over a "[弱/过渡]" one.</span>
+9. Vary the rhythm — mix long holds with quick beats; don't make every shot the same.
+10. Fit the length budget by LEAVING THINGS OUT, never by trimming a worthy moment short.
+11. Photos are stills (marked [photo …], no sound). Use a good one like a held beat: set in_s=0
+    and out_s to a 2-5s hold, kind="photo", and choose motion — "in" (slow push), "out" (slow
+    pull) to give it life, or "static". Place it in chronological order with the videos.
+
+PROCESS — two steps, in this order:
+A. Think in prose first: what is this footage about, which moments matter and why, the
+   emotional arc, what to drop.
+B. THEN output the structured edit as a single JSON object, after your reasoning:
+{
+  "feeling": "&lt;the mood you are cutting to&gt;",
+  "arc": "&lt;one or two sentences: the through-line of this reel&gt;",
+  "segments": [
+    {"clip_id": "&lt;id from the table&gt;", "in_s": 0.0, "out_s": 0.0,
+     "kind": "moment | conversation | photo", "motion": "static | in | out (photos only)",
+     "duck_music": false, "reason": "&lt;one line&gt;"}
+  ]
+}
+clip_id must be EXACTLY the id shown in [clip &lt;id&gt;] (copy it verbatim, do not shorten it);
+in_s/out_s are seconds within that clip, between 0 and its stated len; segments are in final
+reel order.</pre>
+    </div>
+    <div class="panel">
+      <p class="anno">What the director reads is not a video but a text table like this (rendered by <b>director/table.py</b>). One block per clip: a header (id / who is on screen / length / note / <code class="inline-code">best ~Xs</code>), followed by <b>visual / speech / text (on screen)</b> rows <b>interleaved by time</b>. At the same instant the order is fixed: speech → visual → text.</p>
+      <pre class="code">[clip <span class="k2">DJI_0022</span>]  who: boy, short hair   len: 20s   note: roasting taro, important   <span class="ph">best ~3.2s</span>
+  speech  t=1.3-2.1s  is this a taro?
+  visual  t=0.0s  roasting food around a charcoal stove  <span class="ph">[弱/过渡]</span>
+  text    t=0.0s  on screen: Wuyi Mountain Scenic Area
+  visual  t=3.2s  close-up of the child picking up the roasted taro  <span class="ph">[清晰·构图好]</span>
+  speech  t=3.5-5.0s  wow, smells great
+
+[photo <span class="k2">IMG_3310</span>]  who: —   (still photo — pick a 2-5s hold via out_s, and motion: static/in/out)
+  visual  t=0.0s  the family posing together by the stream</pre>
+      <p class="anno" style="margin-top:16px"><b>What each field means</b> (click a term for the explanation on the right):</p>
+      <div class="kv" style="margin-top:6px">
+        <div class="row"><div class="k">best ~Xs</div><div class="v"><span class="term" data-k="best_t">best moment</span>: the instant with the highest aesthetic score in this clip, a hint to open the <span class="term" data-k="in_point">in-point</span> here, not an instruction to drop the clip on this basis.</div></div>
+        <div class="row"><div class="k">visual</div><div class="v">The picture as described by the VLM; the row may end with a <span class="qt sharp">[清晰·构图好]</span> or <span class="qt weak">[弱/过渡]</span> <span class="term" data-k="quality_tag">quality tag</span>.</div></div>
+        <div class="row"><div class="k">speech</div><div class="v">Dialogue transcribed by <span class="term" data-k="Whisper">Whisper</span>, with start/end times.</div></div>
+        <div class="row"><div class="k">text</div><div class="v"><span class="term" data-k="OCR">On-screen text</span> in the picture (road signs / captions), rendered as <code>on screen: …</code>.</div></div>
+        <div class="row"><div class="k">photo</div><div class="v">A <span class="term" data-k="kind">photo</span> is a still with no sound, a hint to set <code>in_s=0</code>, use <code>out_s</code> for a 2-5s hold, and choose a <span class="term" data-k="motion">motion</span>.</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="step">Input: footage table + metadata</div>
+      <p class="anno">prompt = PREAMBLE + HEADER + RULES. The dynamic part is assembled by <span class="term" data-k="build_director_montage">build_director_montage</span>: it reads <code>get_clip_moments_rich</code> (with OCR), <span class="term" data-k="clip_aesthetics">clip_aesthetics</span> (to compute the <span class="term" data-k="quality_tag">quality tags</span>), and <code>get_transcript</code> from the store, then adds <span class="term" data-k="feeling">feeling</span>, the music track / tempo, the budget budget_s, and sensitive people.</p>
+      <div class="step">LLM call: claude_text (analyze/backends/claude_cli.py)</div>
+      <pre class="code"><span class="cm"># plain text in, JSON-in-prose out; no tool use, no structured output</span>
+subprocess.run([
+    "claude", "-p", prompt,
+    "--output-format", "json",
+    "--model", "claude-opus-4-6",
+], ...)   <span class="cm"># prefers the claude CLI (subscription); with no CLI it falls back to ANTHROPIC_API_KEY direct API</span>
+<span class="cm"># timeout DIRECTOR_TIMEOUT_S = 1800s (large batches can take a few minutes)</span></pre>
+      <div class="step">Output: JSON → IntentionList → MontagePlan[]</div>
+      <pre class="code"><span class="cm"># LLM returns (prose reasoning first, then a single JSON object)</span>
+{ "feeling": "...", "arc": "...",
+  "segments": [ {"clip_id","in_s","out_s","kind","motion","duck_music","reason"}, ... ] }</pre>
+      <p class="anno" style="margin-top:14px">Then this processing chain (all pure, in <b>director/plan.py</b> + <b>montage.py</b>; click the blue terms for explanations):</p>
+      <div style="background:var(--paper);border:1px solid var(--gray-200);border-radius:10px;padding:14px 18px;margin-top:8px">
+        <div class="flow-chain">
+          <span class="term" data-k="parse_edit" style="color:var(--slate);font-weight:700">parse_edit</span> <span class="arr">→</span> tolerantly extract the JSON (drop segments missing clip_id or with out≤in)<br>
+          <span class="arr">→</span> <span class="term" data-k="resolve_segments" style="color:var(--slate);font-weight:700">resolve_segments</span> restores abbreviated clip_ids to real paths<br>
+          <span class="arr">→</span> <b>clamp</b> out_s to the real duration (the director only saw the table; out of bounds would crash the render)<br>
+          <span class="arr">→</span> <span class="term" data-k="edit_to_intention" style="color:var(--slate);font-weight:700">edit_to_intention</span> converts to IntentionList; a <code class="inline-code">duck_music=true</code> segment <span class="arr">→</span> one <span class="term" data-k="AudioHighlight">AudioHighlight</span><br>
+          <span class="arr">→</span> <span class="term" data-k="split_edit_by_day" style="color:var(--slate);font-weight:700">split_edit_by_day</span> splits by day + budget<br>
+          <span class="arr">→</span> each segment is packaged into a <span class="term" data-k="MontagePlan" style="color:var(--slate);font-weight:700">MontagePlan</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ music selection: director × scorer ============ -->
+<section>
+  <div class="sec-head"><p class="eyebrow">director × music</p><h2>How music gets chosen: the director gives intent, the scorer picks the track</h2>
+    <p style="margin:8px 0 0;font-size:14px;color:var(--gray-700)">Track selection in the shipping pipeline uses <b>no LLM</b>. The director only says what <b>feeling</b> it wants (a <span class="term" data-k="MusicIntent">MusicIntent</span>); which <b>specific track</b> is decided by the deterministic scorer <span class="term" data-k="rank_tracks">rank_tracks</span>. This split is deliberate: the LLM makes the judgement, numbers do the matching, matching the "separate decisions from raw data" principle throughout.</p>
+  </div>
+
+  <div class="card">
+    <div class="struct-lab">Selection flow · director gives intent → scored selection → beat snap → accounting (click the dashed terms / boxes for explanations)</div>
+    <svg class="minisvg" viewBox="0 0 1000 100" role="img" aria-label="Music selection flow: the director outputs a MusicIntent, rank_tracks scores and picks a track, beat_snap snaps to beats, and a rationale sidecar is written">
+      <text class="cap" data-k="energy_curve" x="200" y="14" text-anchor="middle" style="cursor:pointer;fill:var(--clay-d)">↓ shared coordinate: energy_curve (16-point energy arc)</text>
+      <line x1="194" y1="59" x2="212" y2="59" stroke="#141413" stroke-width="1.5" marker-end="url(#ah-slate)"/>
+      <line x1="394" y1="59" x2="412" y2="59" stroke="#141413" stroke-width="1.5" marker-end="url(#ah-slate)"/>
+      <line x1="560" y1="59" x2="578" y2="59" stroke="#141413" stroke-width="1.5" marker-end="url(#ah-slate)"/>
+      <line x1="752" y1="59" x2="770" y2="59" stroke="#141413" stroke-width="1.5" marker-end="url(#ah-slate)"/>
+      <g class="b click" data-k="MusicIntent"><rect class="b click" x="8" y="30" width="186" height="58" rx="9"/>
+        <text class="lbl" x="101" y="55" text-anchor="middle" font-size="14">director</text>
+        <text class="sub" x="101" y="73" text-anchor="middle" font-size="10.5">→ MusicIntent</text></g>
+      <g class="b click" data-k="rank_tracks"><rect class="b click" x="212" y="30" width="182" height="58" rx="9"/>
+        <text class="lbl" x="303" y="55" text-anchor="middle" font-size="14">rank_tracks</text>
+        <text class="sub" x="303" y="73" text-anchor="middle" font-size="10.5">deterministic scoring · no LLM</text></g>
+      <g class="b click" data-k="TrackFeatures"><rect class="b click dark" x="412" y="30" width="148" height="58" rx="9"/>
+        <text class="dlbl" x="486" y="55" text-anchor="middle" font-size="13">chosen track</text>
+        <text class="dlbl" x="486" y="73" text-anchor="middle" font-size="10" opacity=".75">= top-ranked</text></g>
+      <g class="b click" data-k="beat_snap_segments"><rect class="b click" x="578" y="30" width="174" height="58" rx="9"/>
+        <text class="lbl" x="665" y="55" text-anchor="middle" font-size="14">beat snap</text>
+        <text class="sub" x="665" y="73" text-anchor="middle" font-size="10.5">beat_snap_segments</text></g>
+      <g class="b click" data-k="rationale_sidecar"><rect class="b click dark" x="770" y="30" width="222" height="58" rx="9"/>
+        <text class="dlbl" x="881" y="55" text-anchor="middle" font-size="12.5">*.music-rationale.json</text>
+        <text class="dlbl" x="881" y="73" text-anchor="middle" font-size="10" opacity=".75">selection accounting</text></g>
+    </svg>
+
+    <div class="kv">
+      <div class="row"><div class="k">① Director intent</div><div class="v">After reading the footage table, the director outputs a <span class="term" data-k="MusicIntent">MusicIntent</span> alongside the edit: a 16-point <span class="term" data-k="energy_curve">energy_curve</span> + tempo range + mode_pref + valence + target duration. It states what feeling it wants and <b>never names any file</b>. (That line in the director prompt now reads <code class="inline-code">Music: chosen AFTER your edit…</code>.)</div></div>
+      <div class="row"><div class="k">② Scoring</div><div class="v">Every track in the library has offline-computed <span class="term" data-k="TrackFeatures">TrackFeatures</span>. <span class="term" data-k="rank_tracks">rank_tracks</span> scores each dimension (shape/tempo/valence/mode/duration), weights them by <span class="term" data-k="DEFAULT_WEIGHTS">DEFAULT_WEIGHTS</span>, then multiplies by the <span class="term" data-k="shape_gate">shape_gate</span> soft threshold. Purely numeric, reproducible, no LLM.</div></div>
+      <div class="row"><div class="k">③ Selection</div><div class="v">The <b>top-ranked</b> total score becomes the chosen track; if the top is <code class="inline-code">&lt; 0.6</code> → <span class="term" data-k="library_gap">library_gap</span>, it picks the "least bad" as a fallback and flags that a track should be added.</div></div>
+      <div class="row"><div class="k">④ Beat snap</div><div class="v"><span class="term" data-k="beat_snap_segments">beat_snap_segments</span> uses the <b>chosen track's</b> real beat times to snap each cut point to the nearest beat (adjusting <span class="term" data-k="out_s">out_sec</span>). Re-running with a different song simply swaps the chosen track and re-snaps to <b>its own</b> beats.</div></div>
+      <div class="row"><div class="k">⑤ Accounting</div><div class="v">A <span class="term" data-k="rationale_sidecar">*.music-rationale.json</span> is written next to the reel: the chosen track + a five-axis breakdown + beat snapping + library_gap, so "why this track" can be reviewed.</div></div>
+      <div class="row"><div class="k">Files</div><div class="v"><span class="files">director/prompt.py (director outputs MusicIntent) · music/score.py (rank_tracks + weights) · music/features.py (compute features) · music/beatsnap.py (beat snap) · music/library.py (read the feature library)　CLI: <code class="inline-code">composerv music index</code></span></div></div>
+    </div>
+
+    <div class="note-flow" style="background:#FFF6F1;border:1px solid rgba(217,119,87,.3)"><b style="color:var(--clay-d)">In one line</b>: the director gives "what it wants", the scorer gives "which track to use". There is also a separate <span class="term" data-k="music_collab">design-time three-way negotiation</span> (music / director / evaluation) used only to tune the prompt and weights, which <b>never enters the shipping pipeline</b>.</div>
+  </div>
+</section>
+
+<!-- ============ data contracts ============ -->
+<section>
+  <div class="sec-head"><p class="eyebrow">data contracts</p><h2>Data contracts running through the whole line</h2>
+    <p style="margin:8px 0 0;font-size:14px;color:var(--gray-700)">The objects actually passed between modules. All timecodes are <b>source-media seconds (float)</b>; only FCPXML export converts them to integer frames.</p>
+  </div>
+  <details open>
+    <summary>Timeline contract: how an edit decision is represented<span class="meta">composerv/models.py</span></summary>
+    <div class="body">
+      <p class="anno" style="margin:0 0 10px"><span class="term" data-k="IntentionList">IntentionList</span> is the single contract shared by the preview engine and the FCPXML exporter.</p>
+      <pre class="code">class <span class="k2">Segment</span>(BaseModel):
+    <span class="cm">"""One item of an IntentionList. clip = a reference to source footage; gap = an intentional hole; photo = a still hold."""</span>
+    kind: str = "clip"              <span class="cm"># clip | gap | photo</span>
+    source_id: str | None = None    <span class="cm"># source-clip id; None for a gap</span>
+    in_sec: float | None = None
+    out_sec: float | None = None
+    duration_s: float
+    motion: str = ""                <span class="cm"># photo: static | in | out (render does a Ken Burns move)</span>
+    label: str = ""                 <span class="cm"># beat function / marker name</span>
+    note: str = ""                  <span class="cm"># reason / source, written out as a marker note</span>
+    transition_in: str = "hard_cut"
+    enabled: bool = True            <span class="cm"># off = stays in the document but is left out of the compiled output</span>
+
+class <span class="k2">IntentionList</span>(BaseModel):
+    story_id: str
+    timeline_fps: int = 30
+    segments: list[Segment] = []
+    music: MusicBed | None = None
+
+class <span class="k2">MusicBed</span>(BaseModel):
+    <span class="cm">"""The music bed under the whole timeline plus its ducking rules."""</span>
+    path: str
+    gain_db: float = 0.0            <span class="cm"># music level outside the windows</span>
+    duck_db: float = -15.0          <span class="cm"># clip source-audio level outside the windows</span>
+    fade_out_s: float = 1.5
+    highlights: list[AudioHighlight] = []
+    music_duck_db: float = -12.0    <span class="cm"># how much music is ducked inside a window</span>
+    highlight_db: float = 0.0       <span class="cm"># source audio raised inside a window</span>
+
+class <span class="k2">AudioHighlight</span>(BaseModel):
+    <span class="cm">"""A window where live sound is brought forward and the music steps back. Times are timeline seconds."""</span>
+    start_s: float
+    end_s: float
+    ramp_s: float = 0.40            <span class="cm"># fade in / out at both ends</span>
+    music_duck_db: float | None = None
+    clip_db: float | None = None
+    label: str = ""</pre>
+    </div>
+  </details>
+  <details>
+    <summary>Perception contract: what the analyze stage caches<span class="meta">analyze/clip_video.py · store/db.py</span></summary>
+    <div class="body">
+      <pre class="code">class <span class="k2">ClipMoment</span>(BaseModel):           <span class="cm"># analyze/clip_video.py</span>
+    t: float          <span class="cm"># the real sampled timestamp (seconds within the clip)</span>
+    text: str         <span class="cm"># what happened at that moment</span>
+    ocr: str = ""     <span class="cm"># on-screen readable text at that moment (signs / captions / place names)</span>
+    objects: list[GroundedObject] = []   <span class="cm"># object boxes (used by reframe, ignored by the director)</span>
+
+class <span class="k2">GroundedObject</span>(BaseModel):
+    label: str                 <span class="cm"># "person" / "dog" / "sign" ...</span>
+    box: list[float]           <span class="cm"># [x1,y1,x2,y2], normalized to [0,1]</span>
+
+class <span class="k2">ClipAesthetics</span>(BaseModel):         <span class="cm"># store/db.py</span>
+    best_t: float | None = None
+    curve: list[tuple[float, float, bool]] = []   <span class="cm"># (t seconds, total score, is-utility)</span></pre>
+    </div>
+  </details>
+  <details>
+    <summary>Director output: the final object handed to render<span class="meta">music/montage.py</span></summary>
+    <div class="body">
+      <pre class="code">class <span class="k2">MontagePlan</span>(BaseModel):
+    feeling: str = ""
+    track: str | None = None        <span class="cm"># suggested music file</span>
+    tempo: float = 0.0
+    label: str = ""                 <span class="cm"># which day / part this is, used for naming</span>
+    intention: IntentionList        <span class="cm"># the edit-decision list actually fed to the render layer</span></pre>
+    </div>
+  </details>
+  <details>
+    <summary>User-brief contract <span class="st done" style="margin-left:6px">Implemented</span><span class="meta">store/db.py · Brief</span></summary>
+    <div class="body">
+      <p class="anno" style="margin:0 0 10px">Name confirmation and the user's additions are unified into a "<span class="term" data-k="user_brief">user brief</span>", injected into the highest-priority section of the director prompt (HUMAN BRIEF).</p>
+      <pre class="code">class <span class="k2">Brief</span>(BaseModel):            <span class="cm"># store/db.py (implemented)</span>
+    scope: str                      <span class="cm"># which edit scope it belongs to (e.g. one shooting day)</span>
+    context: str = ""               <span class="cm"># extra video context (free text)</span>
+    style: str = ""                 <span class="cm"># style / pacing requests</span>
+    updated_at: str = ""
+<span class="cm"># persons.note rides along with 'who' into the footage table; briefs are stored/fetched by scope (set_brief/get_brief)
+# flow: composerv confirm (form) -> store -> montage --scope reads the brief -> HUMAN BRIEF section</span></pre>
+    </div>
+  </details>
+</section>
+
+<footer>composerV · MIT License · model licenses in THIRD_PARTY_NOTICES.md (the insightface face model is non-commercial research only) · the prompt and data contracts are adapted from director/prompt.py · table.py · analyze/aesthetics.py · models.py and others (comments translated for this page)</footer>
+
+</main>
+
+<!-- ============ right-side explanation panel ============ -->
+<aside class="aside">
+  <div class="aside-card">
+    <div class="aside-head"><b>Explanations</b><span class="hint">click a dashed term / box on the left</span></div>
+    <div class="explain" id="explain"></div>
+  </div>
+</aside>
+
+</div><!-- /layout -->
+</div><!-- /wrap -->
+
+<script>
+/* ---------- glossary ---------- */
+var GLOSSARY = {
+  proxy:{t:"proxy clip",c:"concept",d:"A uniform H.264 proxy clip. Original footage can be in all kinds of codecs and variable frame rates, hard to read frame-by-frame quickly; at ingest it is converted to one constant-frame-rate .mp4 in <code>~/.composerv/</code>, which analyze and preview then read. The originals are only used at the end for finishing in Final Cut.",r:["CFR","assets"]},
+  CFR:{t:"CFR constant frame rate",c:"concept",d:"Constant Frame Rate: a fixed number of frames per second, with timecodes and frames in one-to-one correspondence for accurate frame-by-frame seeking. Phone/camera footage is often VFR (variable frame rate), which is easy to misalign when editing precisely, so it is converted to a CFR proxy first.",r:["proxy"]},
+  footage_table:{t:"footage table",c:"concept",d:"The director's only input: a plain-text timeline of the footage. One block per clip, with a header of id / who is on screen / length / note / best moment, followed by visual, speech, and on-screen rows interleaved by time. The director does not watch the picture; it edits by reading this table only.",r:["build_footage_table","ClipMoment","transcript","best_t"]},
+  in_point:{t:"in-point",c:"concept",d:"Which second of the source clip a segment starts playing from in the final reel. The director uses the <code>best ~Xs</code> hint to open the in-point at the sharpest, most meaningful instant, not necessarily the clip's start. Corresponds to <code>in_s</code> in the JSON.",r:["best_t","in_s","out_s"]},
+  best_t:{t:"best_t best moment",c:"concept",d:"The time point (in seconds) with the highest aesthetic score in a clip, excluding the first and last 0.3s (the start and end often have shake / black frames). Shown in the footage-table header as <code>best ~Xs</code>, hinting that the director should open the in-point here. <b>It only affects the in-point; it does not decide whether the clip is kept.</b>",r:["in_point","aesthetics","clip_aesthetics"]},
+  quality_tag:{t:"quality tag",c:"concept",d:"Distills the raw aesthetic score into a short marker the director can read: <b>[清晰·构图好]</b> (sharp, well-composed) = good frame; <b>[弱/过渡]</b> (weak / transitional) = blurry / transition / junk frame; the middle band gets no tag. The director uses it to choose which frame to open on, not to drop clips.",r:["distill_quality","aesthetics","quality_tag_at"]},
+  ducking:{t:"ducking the music",c:"concept",d:"By default the reel keeps the music in front and the clip's own audio ducked (about -15 dB). When a conversation or live sound is worth featuring, the director marks <code>duck_music=true</code>, and for that span the music briefly dips and the original audio rises, with fades at both ends.",r:["duck_music","MusicBed","AudioHighlight"]},
+  feeling:{t:"feeling",c:"concept",d:"The overall tone of the reel (calm / upbeat / nostalgic / sad…). It sets the pace: upbeat = quick cuts, calm and nostalgic = long holds, sad = slow. Inferred from the summaries by <code>infer_feeling</code>, or set by hand.",r:["infer_feeling","clip_summaries"]},
+  VLM:{t:"VLM vision-language model",c:"concept",d:"Vision-Language Model. Given a series of timestamped frames, it describes what happens at each moment, reads on-screen text, and boxes objects. Locally it uses Qwen3-VL (MLX), or it can go through Claude. Output is written into clip_moments.",r:["sub_vlm","clip_moments","OCR","grounded_objects"]},
+  OCR:{t:"OCR on-screen text",c:"concept",d:"Reads out text that appears in the picture: road signs, captions, shop signs, etc. Rendered in the table as <code>on screen: …</code>, it is a clue for place and event.",r:["ClipMoment","clip_moments"]},
+  grounded_objects:{t:"grounded objects",c:"concept",d:"Subjects the VLM boxes (person/dog/sign…), each with normalized coordinates <code>[x1,y1,x2,y2]</code>. The director's text table ignores them; they are used by reframe (auto crop / composition).",r:["GroundedObject","ClipMoment"]},
+  Whisper:{t:"Whisper speech transcription",c:"concept",d:"A speech-transcription model. Here it uses MLX-Whisper (runs locally on Apple Silicon), turning voices into sentences with start/end times, written into transcript.",r:["transcript","sub_whisper"]},
+  aesthetics:{t:"aesthetics scoring",c:"concept",d:"Uses Apple Vision (a small local Swift program) to score sampled frames one by one, roughly -1 (bad) to +1 (good), and flags utility frames. Used to pick the best moment and the quality tags.",r:["score_frames","analyze_aesthetics","best_t","quality_tag","utility_frame","sub_aesthetics"]},
+  utility_frame:{t:"utility frame",c:"concept",d:"A frame that Apple Vision judges as \"functional / no aesthetic value\" (pure document, solid color, transition). Always tagged [弱/过渡] (weak / transitional).",r:["aesthetics","quality_tag"]},
+
+  sub_vlm:{t:"vision branch · VLM",c:"sub",d:"The analyze module's \"see\" path: the VLM looks at the picture moment by moment and produces a caption (description) + OCR (on-screen text) + grounded objects (object boxes), written into clip_moments.",r:["VLM","clip_moments","OCR","grounded_objects"]},
+  sub_whisper:{t:"hearing branch · Whisper",c:"sub",d:"The analyze module's \"hear\" path: MLX-Whisper transcribes voices into timed sentences, written into transcript.",r:["Whisper","transcript"]},
+  sub_aesthetics:{t:"aesthetics branch · Vision",c:"sub",d:"The analyze module's \"aesthetics\" path: Apple Vision scores frames and computes best_t + quality tags, written into clip_aesthetics. It only affects the in-point.",r:["aesthetics","clip_aesthetics","best_t","quality_tag"]},
+  sub_confirm_faces:{t:"face confirm",c:"sub",d:"After perception, the detected faces / person clusters are shown to the user to confirm \"who is this\", against the existing person library; the user gives a name or skips, and names are saved back to the local persons library for the long term. It builds on the existing face-detection / naming CLI (faces / name / merge).",r:["persons","faces","user_brief"]},
+  sub_user_meta:{t:"user meta input",c:"sub",d:"Lets the user add extra context for the video, style / pace requests, and other free text; the perception layer gathers it under the single label \"user brief\".",r:["user_brief"]},
+  user_brief:{t:"user brief",c:"model",d:"The confirmed names + the user's added context / style requests, packaged under the single label \"user brief\" and injected into the director prompt as the <b>highest-priority</b> human guidance (matching rule 1 Human-led).",r:["sub_confirm_faces","sub_user_meta","persons"]},
+  persons:{t:"persons library",c:"table",d:"The local person library: person_id + name + face centroid (cluster center). Face confirm compares against it to recognize people; new names given by the user are saved back here, persisted in the local database.",r:["faces","sub_confirm_faces"]},
+  faces:{t:"faces",c:"table",d:"Face-detection results: faces detected by InsightFace (embedding + box + time point), clustered into groups. Face confirm is the step that maps these clusters to specific names.",r:["persons","sub_confirm_faces"]},
+
+  assets:{t:"assets table",c:"table",d:"The asset table (primary key = path): each media file's codec, frame rate, dimensions, duration, capture time, proxy path, and so on. Written at the ingest stage; nearly every later step queries it for metadata.",r:["proxy"]},
+  clarity:{t:"clarity table",c:"table",d:"A clip's status in the \"see-clearly + filter\" layer: a one-line summary, the summary source (local/claude), and whether it is selected into the working set.",r:["clip_summaries"]},
+  clip_summaries:{t:"clip_summaries table",c:"table",d:"A one-line summary per clip, linked to the story layer; the director reads it when inferring the feeling.",r:["clarity","feeling"]},
+  keyframes:{t:"keyframes table",c:"table",d:"Representative keyframe thumbnails extracted per clip (time point + thumbnail path), used for the catalog page and storyboard display.",r:["assets"]},
+  clip_moments:{t:"clip_moments table",c:"table",d:"The visual-moments table: the moment-by-moment records the VLM produces at the analyze stage (t, text, ocr, objects). The director reads it (with OCR) into the footage table.",r:["ClipMoment","VLM","footage_table"]},
+  transcript:{t:"transcript table",c:"table",d:"The speech table: sentences transcribed by Whisper (start, end, text). The director reads it to build the speech rows.",r:["Whisper","footage_table"]},
+  clip_aesthetics:{t:"clip_aesthetics table",c:"table",d:"The aesthetics table (primary key = path): each clip's best_t (best moment) + curve (the full scoring curve). The director reads it to compute quality tags and the best moment.",r:["ClipAesthetics","best_t","aesthetics"]},
+
+  Segment:{t:"Segment",c:"model",d:"One edit in an IntentionList: kind (clip/gap/photo), source id, in/out seconds, duration, note, transition. <code>enabled=false</code> means it stays in the document but not in the output.",r:["IntentionList","kind"]},
+  IntentionList:{t:"IntentionList",c:"model",d:"The edit-decision list: the single contract shared by the preview engine and the FCPXML exporter. Ordered segments + an optional MusicBed. A Story compiles into it, but it does not compile back.",r:["Segment","MusicBed","MontagePlan"]},
+  MusicBed:{t:"MusicBed",c:"model",d:"The music bed: music laid under the whole timeline + ducking rules. Two music levels and two original-audio levels implement the dynamic ducking.",r:["ducking","AudioHighlight"]},
+  AudioHighlight:{t:"AudioHighlight",c:"model",d:"A highlight window: a time span where some live sound is brought to the front and the music steps back, with fades at both ends. A <code>duck_music=true</code> segment is projected into one AudioHighlight.",r:["ducking","duck_music","MusicBed"]},
+  ClipMoment:{t:"ClipMoment",c:"model",d:"One visual moment: t (seconds within the clip), text (what happened), ocr (on-screen text), objects (object boxes). The row model of the clip_moments table.",r:["clip_moments","OCR","grounded_objects"]},
+  GroundedObject:{t:"GroundedObject",c:"model",d:"One boxed object: label + normalized-coordinate box <code>[x1,y1,x2,y2]</code>.",r:["grounded_objects","ClipMoment"]},
+  ClipAesthetics:{t:"ClipAesthetics",c:"model",d:"A clip's aesthetic result: best_t + curve (a <code>[(t, score, is_utility)]</code> list). The model of the clip_aesthetics table.",r:["clip_aesthetics","best_t"]},
+  MontagePlan:{t:"MontagePlan",c:"model",d:"The director's final output (one per day / per segment): feeling, track, tempo, label (used for naming), intention (the IntentionList actually fed to render).",r:["IntentionList","feeling"]},
+
+  clip_id:{t:"clip_id field",c:"field",d:"The clip id: the director must copy it verbatim from the table's <code>[clip &lt;id&gt;]</code>. The LLM tends to shorten long paths to a stem, and resolve_segments restores it to the real path.",r:["resolve_segments"]},
+  in_s:{t:"in_s field",c:"field",d:"In-point seconds: which second the segment starts from in the source clip, between 0 and the clip length.",r:["in_point","out_s"]},
+  out_s:{t:"out_s field",c:"field",d:"Out-point seconds: which second the segment ends at in the source clip, must be greater than in_s. The director only saw the table, not the real clip, so this is clamped to the real duration afterward.",r:["in_s","in_point"]},
+  kind:{t:"kind field",c:"field",d:"Segment type: moment (a short shot) / conversation (a complete conversation, a long hold) / photo (a still).",r:["Segment","motion"]},
+  motion:{t:"motion field",c:"field",d:"Photo motion: static / in (slow push) / out (slow pull), giving stills a Ken Burns effect.",r:["kind"]},
+  duck_music:{t:"duck_music field",c:"field",d:"Whether to duck the music: when true, this segment features the original audio (a conversation / live sound) and the music briefly dips.",r:["ducking","AudioHighlight"]},
+  reason:{t:"reason field",c:"field",d:"A one-line reason: the basis the director writes for each keep decision, which lands as a marker note on the timeline for human review.",r:[]},
+  arc:{t:"arc field",c:"field",d:"The through-line: the director's one- or two-sentence summary of the reel's main line / emotional arc.",r:["feeling"]},
+
+  build_director_montage:{t:"build_director_montage()",c:"fn",d:"The overall orchestration of the director stage: read store → build table → call the LLM → parse / restore / clamp → split by day → return MontagePlan[].",r:["footage_table","MontagePlan","parse_edit"]},
+  build_footage_table:{t:"build_footage_table()",c:"fn",d:"Interleaves each clip's visual/speech/text rows by time and renders the text table the director reads. A pure function.",r:["footage_table"]},
+  build_director_prompt:{t:"build_director_prompt()",c:"fn",d:"Assembles the footage table + feeling / music / budget / sensitive people into the full prompt (PREAMBLE + HEADER + RULES). A pure function.",r:["footage_table","feeling"]},
+  parse_edit:{t:"parse_edit()",c:"fn",d:"Tolerantly extracts the JSON from the LLM reply (there may be prose in front). Drops segments missing clip_id or with out≤in.",r:["clip_id","resolve_segments"]},
+  resolve_segments:{t:"resolve_segments()",c:"fn",d:"Restores the (often abbreviated) clip_id the director wrote to the real source path: exact match first, otherwise find the id with a unique containment relationship; drop it if there is no match or an ambiguity.",r:["clip_id","parse_edit"]},
+  edit_to_intention:{t:"edit_to_intention()",c:"fn",d:"Converts the parsed edit into an IntentionList: each segment becomes a Segment; a duck_music segment is projected into an AudioHighlight (adjacent ones are merged).",r:["IntentionList","AudioHighlight","duck_music"]},
+  split_edit_by_day:{t:"split_edit_by_day()",c:"fn",d:"Splits segments into parts by capture day + the max_part_s budget; an over-long day is recorded as date (1)(2); an over-short tail part is merged back into the previous part of the same day.",r:["MontagePlan"]},
+  score_frames:{t:"score_frames()",c:"fn",d:"Calls the local Swift CLI to score each frame, returning <code>{path:(score, is_utility)}</code> (note: a dict, not a list). If the binary is missing it silently returns empty.",r:["aesthetics","analyze_aesthetics"]},
+  analyze_aesthetics:{t:"analyze_aesthetics()",c:"fn",d:"Sample frames at aes_fps → score with score_frames → return <code>(best_t, curve)</code>.",r:["score_frames","best_t","aesthetics"]},
+  distill_quality:{t:"distill_quality()",c:"fn",d:"Distills (score, is_utility) into a tag: ≥0.4 and not utility → [清晰·构图好] (sharp, well-composed); utility or ≤-0.2 → [弱/过渡] (weak / transitional); otherwise empty.",r:["quality_tag","quality_tag_at"]},
+  quality_tag_at:{t:"quality_tag_at()",c:"fn",d:"Looks up the quality tag at a given time t: take the nearest sample on the curve, then distill.",r:["distill_quality","quality_tag"]},
+  infer_feeling:{t:"infer_feeling()",c:"fn",d:"Infers the overall feeling from the clip summaries; can be injected into the LLM.",r:["feeling","clip_summaries"]},
+
+  MusicIntent:{t:"MusicIntent",c:"model",d:"The director's <b>music intent</b> (not a specific track): <code>energy_curve</code> (16-point energy arc), <code>tempo_lo/hi</code> (the wanted tempo range, 0 = unbounded), <code>mode_pref</code> (major/minor/any), <code>valence</code> (bright/dark), <code>target_duration_s</code>, <code>arc_text</code>. Output once by the director as part of the edit decisions, then handed to rank_tracks to pick a track.",r:["energy_curve","rank_tracks","TrackFeatures","MusicBed"]},
+  TrackFeatures:{t:"TrackFeatures",c:"model",d:"A track's <b>offline audio features</b>: <code>tempo_bpm</code>, <code>beat_times</code>, <code>mode</code> (major/minor approximation), <code>energy_curve</code> (16-point), <code>valence</code>, <code>duration_s</code>, plus the <code>source</code>/<code>license</code> provenance. Computed once offline by <code>composerv music index</code> and cached in a same-named <code>*.features.json</code> sidecar.",r:["rank_tracks","energy_curve","music_index","MusicIntent"]},
+  rank_tracks:{t:"rank_tracks()",c:"fn",d:"The <b>deterministic, LLM-free track scorer</b> (music/score.py). Compares the MusicIntent against every TrackFeatures in the library dimension by dimension: five 0–1 scores for shape / tempo / valence / mode / duration, weighted by DEFAULT_WEIGHTS, then multiplied by the shape_gate soft threshold, sorted to take the top. <b>No LLM is involved in this selection step</b>.",r:["MusicIntent","TrackFeatures","DEFAULT_WEIGHTS","shape_gate","beat_snap_segments","library_gap"]},
+  energy_curve:{t:"energy_curve (16-point energy arc)",c:"field",d:"The <b>shared language</b> of selection: 16 numbers in 0–1 describing the emotion / loudness rise and fall from the start (point 0) to the end. Both the director's \"wanted arc\" and each track's \"actual loudness arc\" are projected onto these 16 points, with <code>shape score = 1 − the mean absolute difference of the two arcs</code>. This lets the picture-blind selector and the sound-deaf director align on the same coordinate.",r:["MusicIntent","TrackFeatures","shape_gate"]},
+  DEFAULT_WEIGHTS:{t:"DEFAULT_WEIGHTS scoring weights",c:"field",d:"rank_tracks's five-axis weights: <code>shape 0.6 · tempo 0.15 · valence 0.12 · mode 0.08 · duration 0.05</code>. shape (the energy-arc shape) weighs the most. This set was tuned from 0.5 to 0.6 in a design-time weight-tuning negotiation on 2026-06-26 (the other four were scaled down proportionally, with the sum still 1).",r:["rank_tracks","shape_gate","energy_curve"]},
+  shape_gate:{t:"shape_gate soft threshold",c:"concept",d:"Prevents \"the other four axes at full marks raising the total and masking a bad shape\": when <code>shape &lt; 0.85 (SHAPE_FLOOR)</code>, the total is multiplied by <code>(shape/0.85)²</code> for a steep drop. In one real tuning run the top track masked a bad shape with full tempo/mode/valence; adding this threshold correctly pushed it back down.",r:["rank_tracks","energy_curve","DEFAULT_WEIGHTS"]},
+  beat_snap_segments:{t:"beat_snap_segments()",c:"fn",d:"Beat snap: using the <b>chosen track's</b> real beat times, snaps each cut point's timeline end to the nearest beat. It changes <code>out_sec</code> (render computes duration as out−in, so changing duration alone would be a no-op), and rebuilds the ducking windows from the snapped layout.",r:["rank_tracks","MusicIntent","out_s"]},
+  music_index:{t:"composerv music index",c:"fn",d:"An offline command: scans a music directory, computes TrackFeatures for each track (librosa yields tempo / beat times / energy arc / mode / valence), writes a same-named <code>*.features.json</code> sidecar, caches by mtime, and preserves source/license on recompute. Run it before selection.",r:["TrackFeatures","rank_tracks"]},
+  rationale_sidecar:{t:"*.music-rationale.json selection accounting",c:"concept",d:"Writes a selection rationale next to the reel: the chosen track, the total score, the five-axis breakdown (including shape_gate), beat snapping, and library_gap. Makes \"why this track\" reviewable and auditable.",r:["rank_tracks","library_gap"]},
+  library_gap:{t:"library_gap",c:"concept",d:"When the top total score is <code>&lt; 0.6 (ACCEPT_THRESHOLD)</code>: the library has no qualifying track. It does not crash but picks the \"least bad\" one and records library_gap as true, flagging that a track should be added.",r:["rank_tracks","rationale_sidecar"]},
+  music_collab:{t:"design-time three-way negotiation (not shipped)",c:"concept",d:"A three-agent negotiation used only at <b>design time</b> to tune the prompt and weights (music / director / evaluation, Protocol C propose-react-revise, collab.py). The evaluation role tunes the very same shipping rank_tracks, and the LLM only writes rationale prose. <b>Never imported by the shipping pipeline</b>.",r:["rank_tracks","MusicIntent"]}
+};
+
+var CATS=[["concept","Concepts"],["sub","Submodules"],["table","store tables"],["model","Data structures"],["field","Fields"],["fn","Functions"]];
+var CATCOLOR={concept:["#E8EDDF","#788C5D"],sub:["rgba(217,119,87,.16)","#B85C3E"],table:["#F0EEE6","#3D3D3A"],model:["#E8EDDF","#788C5D"],field:["#F5F4EE","#87867F"],fn:["#FCEEED","#C5453A"]};
+function catName(c){for(var i=0;i<CATS.length;i++)if(CATS[i][0]===c)return CATS[i][1];return c;}
+
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+function termHtml(k){
+  var e=GLOSSARY[k]; if(!e) return "";
+  var col=CATCOLOR[e.c]||["#F5F4EE","#87867F"];
+  var h='<div class="ex-back" data-back="1">‹ back to the glossary index</div>';
+  h+='<span class="ex-cat" style="background:'+col[0]+';color:'+col[1]+'">'+catName(e.c)+'</span>';
+  h+='<div class="ex-term">'+esc(e.t)+'</div>';
+  h+='<p class="ex-def">'+e.d+'</p>';
+  var rel=(e.r||[]).filter(function(x){return GLOSSARY[x];});
+  if(rel.length){
+    h+='<div class="ex-rel"><div class="lab">Related</div>';
+    rel.forEach(function(x){h+='<span class="chip" data-k="'+x+'">'+esc(GLOSSARY[x].t)+'</span>';});
+    h+='</div>';
+  }
+  return h;
+}
+function indexHtml(){
+  var h='<p class="idx-intro">Click a <b>dashed term</b> in the text on the left, or any entry below, and the explanation appears here. '+Object.keys(GLOSSARY).length+' entries in total.</p>';
+  CATS.forEach(function(c){
+    var keys=Object.keys(GLOSSARY).filter(function(k){return GLOSSARY[k].c===c[0];});
+    if(!keys.length)return;
+    h+='<div class="idx-group"><div class="gh">'+c[1]+'</div>';
+    keys.forEach(function(k){h+='<span class="chip" data-k="'+k+'">'+esc(GLOSSARY[k].t)+'</span>';});
+    h+='</div>';
+  });
+  return h;
+}
+var explain=document.getElementById("explain");
+function showIndex(){explain.innerHTML=indexHtml();explain.scrollTop=0;}
+function showTerm(k){
+  if(!GLOSSARY[k]){return;}
+  explain.innerHTML=termHtml(k);explain.scrollTop=0;
+  if(window.matchMedia("(max-width:980px)").matches){
+    document.querySelector(".aside").scrollIntoView({behavior:"smooth",block:"start"});
+  }
+}
+showIndex();
+
+/* ---------- event delegation: terms / sub-boxes / related terms / back ---------- */
+document.addEventListener("click",function(ev){
+  var back=ev.target.closest("[data-back]");
+  if(back){showIndex();return;}
+  var t=ev.target.closest("[data-k]");
+  if(t){showTerm(t.getAttribute("data-k"));return;}
+  var node=ev.target.closest("svg .node");
+  if(node){
+    var id=node.getAttribute("data-target"),el=document.getElementById(id);
+    if(el){
+      document.querySelectorAll(".card").forEach(function(c){c.classList.remove("active");});
+      el.classList.add("active");el.scrollIntoView({behavior:"smooth",block:"center"});
+      setTimeout(function(){el.classList.remove("active");},2400);
+    }
+  }
+});
+/* three-tab switching for the prompt */
+document.querySelectorAll(".tabbar button").forEach(function(btn){
+  btn.addEventListener("click",function(){
+    var tabs=btn.closest(".tabs");
+    tabs.querySelectorAll(".tabbar button").forEach(function(b){b.classList.remove("on");});
+    tabs.querySelectorAll(".panel").forEach(function(p){p.classList.remove("on");});
+    btn.classList.add("on");
+    tabs.querySelectorAll(".panel")[+btn.dataset.t].classList.add("on");
+  });
+});
+</script>
+</body>
+</html>
