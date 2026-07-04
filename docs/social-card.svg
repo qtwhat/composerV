@@ -1,0 +1,35 @@
+<svg viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L6,3 L0,6 Z" fill="#87867F"/></marker>
+  </defs>
+  <rect width="1200" height="630" fill="#FAF9F5"/>
+  <rect x="0" y="0" width="1200" height="10" fill="#D97757"/>
+
+  <text x="70" y="120" font-size="22" fill="#D97757" font-weight="600" letter-spacing="1.5" font-family="ui-monospace,Menlo,monospace">story-first · local-first · macOS / Apple Silicon</text>
+
+  <text x="68" y="215" font-size="92" fill="#141413" font-weight="700" letter-spacing="-1">composerV</text>
+
+  <text x="70" y="285" font-size="29" fill="#3D3D3A" font-weight="500">Turn a personal video archive into a music-synced memory reel.</text>
+  <text x="70" y="326" font-size="24" fill="#87867F">Local perception (VLM + Whisper + on-device aesthetics), Claude as the editor,</text>
+  <text x="70" y="360" font-size="24" fill="#87867F">a zero-render live preview, then hand off to Final Cut Pro.</text>
+
+  <g>
+    <rect x="70" y="430" width="180" height="60" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+    <text x="160" y="467" text-anchor="middle" font-size="20" fill="#141413" font-family="ui-monospace,Menlo,monospace">catalog</text>
+    <rect x="290" y="430" width="180" height="60" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+    <text x="380" y="467" text-anchor="middle" font-size="20" fill="#141413" font-family="ui-monospace,Menlo,monospace">analyze</text>
+    <rect x="510" y="430" width="180" height="60" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+    <text x="600" y="467" text-anchor="middle" font-size="20" fill="#141413" font-family="ui-monospace,Menlo,monospace">confirm</text>
+    <rect x="730" y="430" width="180" height="60" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+    <text x="820" y="467" text-anchor="middle" font-size="20" fill="#141413" font-family="ui-monospace,Menlo,monospace">montage</text>
+    <rect x="950" y="430" width="180" height="60" rx="12" fill="#141413"/>
+    <text x="1040" y="467" text-anchor="middle" font-size="20" fill="#E8E6DE" font-family="ui-monospace,Menlo,monospace">render</text>
+  </g>
+  <g stroke="#87867F" stroke-width="2" marker-end="url(#ar)">
+    <line x1="255" y1="460" x2="283" y2="460"/><line x1="475" y1="460" x2="503" y2="460"/>
+    <line x1="695" y1="460" x2="723" y2="460"/><line x1="915" y1="460" x2="943" y2="460"/>
+  </g>
+
+  <text x="70" y="575" font-size="22" fill="#788C5D" font-weight="600" font-family="ui-monospace,Menlo,monospace">github.com/qtwhat/composerV</text>
+  <text x="1130" y="575" text-anchor="end" font-size="20" fill="#87867F" font-family="ui-monospace,Menlo,monospace">MIT · v0.1</text>
+</svg>
