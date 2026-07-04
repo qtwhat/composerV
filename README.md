@@ -1,5 +1,7 @@
 # composerV
 
+**English** · [中文](README.zh-CN.md)
+
 A local-first, **story-first** assistant for turning a large personal video archive
 (GoPro / phone, hundreds of GB) into a story you believe in, then handing it off to
 Final Cut Pro for finishing.
