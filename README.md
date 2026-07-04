@@ -7,6 +7,17 @@ Final Cut Pro for finishing.
 The hard, valuable part is **helping you think the story**, not search and not format
 conversion. Everything below the story layer exists to serve it.
 
+## Architecture at a glance
+
+![composerV pipeline — ingest → analyze → confirm → director → render, all around one central SQLite store](docs/architecture.png)
+
+Five stages on one line, all revolving around a single SQLite **store**
+(`composerv.db`). The slow perception work — a VLM watching the frames, Whisper
+listening to the audio, on-device aesthetic scoring — **runs once and writes the
+store**; the director only ever **reads that cache**, so making a cut and revising it
+both stay fast. The interactive version of this diagram (click a stage for its
+internals) is the project home page: [`index.html`](index.html).
+
 ## The idea in one line
 
 Turn video into **semantics + metadata** so an LLM can help you *curate* (dedupe, pace,
@@ -27,17 +38,24 @@ the locked story compiles to FCPXML for Final Cut.
   preview (zero render), a hand-rolled **FCPXML 1.13** emitter for Final Cut, and a
   storyboard / optional flattened share copy.
 
-See the full design in `docs/` / the approved plan.
+## Pipeline stages and status
 
-## Status
+The five stages run as one line, `catalog → analyze → confirm → montage → preview`,
+each a CLI subcommand reading and writing the shared store:
 
-The core pipeline works end to end: perception (local VLM + Whisper + on-device
-aesthetics) → director (Claude, one call over a text footage table) → preview /
-MP4 / FCPXML, with real music selection (deterministic `rank_tracks` + beat snap)
-and auto-reframe. In progress: a human-in-the-loop CONFIRM stage (person naming +
-user brief) between perception and the director. Current state and how to resume
-each line of work: `docs/HANDOFF.md`; architecture snapshot: `docs/STATUS.md`;
-interactive requirements board: `composerv_pipeline_overview.html`.
+| Stage | Command | Status | What it does |
+|---|---|---|---|
+| ① Ingest | `composerv catalog` | ✅ Done | Scan folders → CFR 720p proxies + keyframes → captions / OCR / shot type → store |
+| ② Analyze | `composerv analyze` | ✅ Done | Per-frame VLM moments + WhisperX transcript + on-device aesthetics; **slow, runs once, cached** |
+| &nbsp;&nbsp;└ Aesthetics | *(inside analyze)* | ✅ Done | Apple Vision on-device quality / emotion scoring; informs the in-point, not the shot selection |
+| ③ Confirm | `composerv confirm` | ✅ Done | Face naming + a short user brief → `persons` / `briefs`; the brief is injected as top-priority human guidance |
+| ④ Director | `composerv montage` | ✅ Done | One Claude call over a text **footage table** → edit decisions + music intent |
+| ⑤ Render | `composerv preview` / `export` | ✅ Done | Zero-render AVComposition preview · FCPXML 1.13 · storyboard / MP4 |
+| &nbsp;&nbsp;└ Auto-reframe | *(inside render)* | ✅ Done | Crop vertical clips to fill 16:9, tracking the subject; rights rotated footage upright |
+| Music-driven editing | *(direction 3)* | 🔷 Planned | Two-pass reorder so the musical climax lands on the strongest shot; spec reviewed, 10 tasks planned, not built |
+
+Music selection itself is already live: the director emits a `MusicIntent`, a
+deterministic `rank_tracks` picks the track, and segments are beat-snapped to the grid.
 
 ## Toolchain
 

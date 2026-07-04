@@ -1,0 +1,87 @@
+<svg viewBox="0 52 1460 332" xmlns="http://www.w3.org/2000/svg" font-family="'PingFang SC',-apple-system,'Microsoft YaHei','Segoe UI',sans-serif">
+  <defs>
+    <marker id="ah-slate" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#141413"/></marker>
+    <marker id="ah-olive" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#788C5D"/></marker>
+    <marker id="ah-clay" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L7,3 L0,6 Z" fill="#D97757"/></marker>
+    <marker id="ah-gray" markerWidth="8" markerHeight="8" refX="6.5" refY="3" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,0 L6.5,3 L0,6 Z" fill="#87867F"/></marker>
+    <style>
+      .nt{font-weight:600;fill:#141413;font-size:15px}
+      .nc{fill:#B85C3E;font-size:11.5px;font-family:ui-monospace,Menlo,monospace}
+    </style>
+  </defs>
+
+  <rect x="0" y="52" width="1460" height="332" fill="#FAF9F5"/>
+
+  <g stroke="#141413" stroke-width="2" marker-end="url(#ah-slate)">
+    <line x1="138" y1="102" x2="188" y2="102"/><line x1="358" y1="102" x2="408" y2="102"/>
+    <line x1="578" y1="102" x2="628" y2="102"/><line x1="798" y1="102" x2="848" y2="102"/>
+    <line x1="1018" y1="102" x2="1068" y2="102"/><line x1="1238" y1="102" x2="1288" y2="102"/>
+  </g>
+  <g font-size="11" fill="#3D3D3A" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" style="paint-order:stroke;stroke:#FFFFFF;stroke-width:3px">
+    <text x="163" y="92">catalog</text><text x="383" y="92">analyze</text>
+    <text x="603" y="92">confirm</text><text x="823" y="92">montage</text><text x="1043" y="92">preview</text>
+  </g>
+
+  <g>
+    <rect x="18" y="74" width="120" height="56" rx="10" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+    <text x="78" y="98" text-anchor="middle" font-size="13" fill="#141413" font-weight="600">媒体文件夹</text>
+    <text x="78" y="116" text-anchor="middle" font-size="10.5" fill="#87867F" font-family="ui-monospace,Menlo,monospace">视频 · 照片</text>
+  </g>
+  <g>
+    <rect x="192" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+    <text class="nt" x="275" y="88" text-anchor="middle">① 摄取 INGEST</text>
+    <text class="nc" x="275" y="108" text-anchor="middle">composerv catalog</text>
+    <text x="275" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● 已实现</text>
+  </g>
+  <g>
+    <rect x="412" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+    <text class="nt" x="495" y="88" text-anchor="middle">② 分析 ANALYZE</text>
+    <text class="nc" x="495" y="108" text-anchor="middle">composerv analyze</text>
+    <text x="495" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● 已实现</text>
+  </g>
+  <g>
+    <rect x="632" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+    <text class="nt" x="715" y="88" text-anchor="middle">③ 确认 CONFIRM</text>
+    <text class="nc" x="715" y="108" text-anchor="middle">人像确认 + 用户输入</text>
+    <text x="715" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● 已实现</text>
+  </g>
+  <g>
+    <rect x="852" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+    <text class="nt" x="935" y="88" text-anchor="middle">④ 导演 DIRECTOR</text>
+    <text class="nc" x="935" y="108" text-anchor="middle">composerv montage</text>
+    <text x="935" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● 已实现</text>
+  </g>
+  <g>
+    <rect x="1072" y="64" width="166" height="76" rx="12" fill="#FFFFFF" stroke="#D1CFC5" stroke-width="1.5"/>
+    <text class="nt" x="1155" y="88" text-anchor="middle">⑤ 渲染 RENDER</text>
+    <text class="nc" x="1155" y="108" text-anchor="middle">preview · export</text>
+    <text x="1155" y="126" text-anchor="middle" font-size="9.5" fill="#788C5D" font-family="ui-monospace,Menlo,monospace">● 已实现</text>
+  </g>
+  <g>
+    <rect x="1292" y="74" width="134" height="56" rx="10" fill="#F0EEE6" stroke="#D1CFC5" stroke-width="1.5"/>
+    <text x="1359" y="98" text-anchor="middle" font-size="12" fill="#141413" font-weight="600">预览 / FCPXML</text>
+    <text x="1359" y="116" text-anchor="middle" font-size="10.5" fill="#87867F" font-family="ui-monospace,Menlo,monospace">storyboard · mp4</text>
+  </g>
+
+  <g stroke="#788C5D" stroke-width="2" marker-end="url(#ah-olive)">
+    <line x1="275" y1="140" x2="275" y2="244"/><line x1="495" y1="140" x2="495" y2="244"/>
+  </g>
+  <line x1="715" y1="140" x2="715" y2="244" stroke="#D97757" stroke-width="2" marker-end="url(#ah-clay)" marker-start="url(#ah-clay)"/>
+  <line x1="935" y1="246" x2="935" y2="142" stroke="#D97757" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ah-clay)"/>
+  <g font-size="11" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" style="paint-order:stroke;stroke:#FFFFFF;stroke-width:3.5px">
+    <text x="275" y="196" fill="#788C5D" font-weight="600">写入</text>
+    <text x="495" y="196" fill="#788C5D" font-weight="600">写入</text>
+    <text x="715" y="196" fill="#D97757" font-weight="600">读/写</text>
+    <text x="935" y="196" fill="#D97757" font-weight="600">读取</text>
+  </g>
+
+  <rect x="192" y="246" width="1046" height="126" rx="12" fill="#141413"/>
+  <text x="210" y="270" font-size="13" fill="#E8E6DE" font-weight="600">SQLite store · composerv.db</text>
+  <text x="1222" y="270" font-size="10.5" fill="#9aa088" text-anchor="end" font-family="ui-monospace,Menlo,monospace">一次分析，多次复用</text>
+  <g font-size="11.5" fill="#cfd3c4" font-family="ui-monospace,Menlo,monospace">
+    <text x="210" y="296"><tspan fill="#788C5D">catalog 写</tspan>  → assets · clarity · clip_summaries · keyframes · captions</text>
+    <text x="210" y="316"><tspan fill="#788C5D">analyze 写</tspan>  → clip_moments · transcript · clip_aesthetics</text>
+    <text x="210" y="336"><tspan fill="#D97757">confirm 读/写</tspan>  → persons（人名 + 备注）· briefs（用户输入）</text>
+    <text x="210" y="356"><tspan fill="#D97757">montage 读</tspan>  → moments + transcript + aesthetics + 人名 + 用户输入  ⇒  footage table</text>
+  </g>
+</svg>
